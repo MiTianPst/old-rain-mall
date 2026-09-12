@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "Write-Host '文件已修改，建议检查一下改了什么'"
+          }
+        ]
+      }
+    ]
+  }
+}
