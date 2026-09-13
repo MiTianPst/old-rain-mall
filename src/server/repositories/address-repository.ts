@@ -3,7 +3,7 @@ import "server-only";
 import { and, desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { userAddresses } from "@/db/schema";
+import { userAddresses, users } from "@/db/schema";
 import type {
   AddressRecord,
   AddressRepository,
@@ -71,6 +71,15 @@ export const addressRepository: AddressRepository = {
 
   create(input) {
     return db.transaction(async (transaction) => {
+      const [user] = await transaction
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, input.userId))
+        .limit(1)
+        .for("update");
+
+      if (!user) return { status: "LIMIT_REACHED" as const };
+
       const existingAddresses = await transaction
         .select({ id: userAddresses.id })
         .from(userAddresses)
@@ -137,6 +146,15 @@ export const addressRepository: AddressRepository = {
 
   remove(input) {
     return db.transaction(async (transaction) => {
+      const [user] = await transaction
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, input.userId))
+        .limit(1)
+        .for("update");
+
+      if (!user) return { status: "NOT_FOUND" as const };
+
       const addresses = await transaction
         .select({
           id: userAddresses.id,
@@ -185,6 +203,15 @@ export const addressRepository: AddressRepository = {
 
   setDefault(input) {
     return db.transaction(async (transaction) => {
+      const [user] = await transaction
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, input.userId))
+        .limit(1)
+        .for("update");
+
+      if (!user) return { status: "NOT_FOUND" as const };
+
       const addresses = await transaction
         .select({ id: userAddresses.id })
         .from(userAddresses)
