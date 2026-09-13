@@ -69,6 +69,24 @@ test("地址数量达到上限时提示最多保存 20 个地址", async () => {
   );
 });
 
+test("其他用户的地址读取和按 ID 更新统一视为不存在", async () => {
+  const service = createAddressService(
+    createRepository({
+      getForEdit: async () => null,
+      update: async () => ({ status: "NOT_FOUND" }),
+    }),
+  );
+
+  assert.deepEqual(
+    await service.getForEdit({ userId: "user-2", addressId: 8 }),
+    { ok: false, code: "NOT_FOUND", message: "收货地址不存在" },
+  );
+  assert.deepEqual(
+    await service.update({ userId: "user-2", addressId: 8, input: addressInput }),
+    { ok: false, code: "NOT_FOUND", message: "收货地址不存在" },
+  );
+});
+
 test("成功写入地址时返回中文操作结果", async () => {
   const service = createAddressService(createRepository());
 
