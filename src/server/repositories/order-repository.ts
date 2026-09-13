@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -237,6 +237,54 @@ async function createOrderTransaction(input: Parameters<OrderRepository["create"
   });
 }
 
+async function closePendingOrder(input: {
+  orderId: number;
+  now: Date;
+  status: "CANCELLED" | "CLOSED";
+}) {
+  return db.transaction(async (transaction) => {
+    const [order] = await transaction
+      .select({ id: orders.id, status: orders.status, expiresAt: orders.expiresAt })
+      .from(orders)
+      .where(eq(orders.id, input.orderId))
+      .limit(1)
+      .for("update");
+
+    if (!order || order.status !== "PENDING_PAYMENT") return false;
+    if (input.status === "CLOSED" && order.expiresAt > input.now) return false;
+
+    const items = await transaction
+      .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, order.id))
+      .orderBy(asc(orderItems.productId))
+      .for("update");
+
+    for (const item of items) {
+      await transaction
+        .update(products)
+        .set({ stock: sql`${products.stock} + ${item.quantity}` })
+        .where(eq(products.id, item.productId));
+    }
+
+    await transaction
+      .update(orders)
+      .set({
+        status: input.status,
+        paymentStatus: "FAILED",
+        cancelledAt: input.status === "CANCELLED" ? input.now : null,
+        updatedAt: input.now,
+      })
+      .where(and(eq(orders.id, order.id), eq(orders.status, "PENDING_PAYMENT")));
+    await transaction
+      .update(payments)
+      .set({ status: "FAILED", updatedAt: input.now })
+      .where(and(eq(payments.orderId, order.id), eq(payments.status, "PENDING")));
+
+    return true;
+  });
+}
+
 export const orderRepository: OrderRepository = {
   async getCheckout(userId) {
     const [user] = await db
@@ -326,15 +374,88 @@ export const orderRepository: OrderRepository = {
     return { ...row, items: items.get(row.id) ?? [] };
   },
 
-  async cancel() {
-    return { status: "NOT_CANCELLABLE" };
+  async cancel(input) {
+    const outcome = await db.transaction(async (transaction) => {
+      const [order] = await transaction
+        .select({ id: orders.id, status: orders.status, expiresAt: orders.expiresAt })
+        .from(orders)
+        .where(and(eq(orders.orderNo, input.orderNo), eq(orders.userId, input.userId)))
+        .limit(1)
+        .for("update");
+
+      if (!order) return { status: "NOT_FOUND" as const };
+      if (order.status !== "PENDING_PAYMENT") {
+        return { status: "NOT_CANCELLABLE" as const };
+      }
+
+      const items = await transaction
+        .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+        .from(orderItems)
+        .where(eq(orderItems.orderId, order.id))
+        .orderBy(asc(orderItems.productId))
+        .for("update");
+      for (const item of items) {
+        await transaction
+          .update(products)
+          .set({ stock: sql`${products.stock} + ${item.quantity}` })
+          .where(eq(products.id, item.productId));
+      }
+
+      const expired = order.expiresAt <= input.now;
+      await transaction
+        .update(orders)
+        .set({
+          status: expired ? "CLOSED" : "CANCELLED",
+          paymentStatus: "FAILED",
+          cancelledAt: expired ? null : input.now,
+          updatedAt: input.now,
+        })
+        .where(and(eq(orders.id, order.id), eq(orders.status, "PENDING_PAYMENT")));
+      await transaction
+        .update(payments)
+        .set({ status: "FAILED", updatedAt: input.now })
+        .where(and(eq(payments.orderId, order.id), eq(payments.status, "PENDING")));
+
+      return { status: expired ? ("EXPIRED" as const) : ("CANCELLED" as const) };
+    });
+    return outcome;
   },
 
-  async closeExpiredForUser() {
-    return 0;
+  async closeExpiredForUser(input) {
+    const rows = await db
+      .select({ id: orders.id })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.userId, input.userId),
+          eq(orders.status, "PENDING_PAYMENT"),
+          lte(orders.expiresAt, input.now),
+        ),
+      )
+      .orderBy(asc(orders.id));
+    let closedCount = 0;
+    for (const row of rows) {
+      if (await closePendingOrder({ orderId: row.id, now: input.now, status: "CLOSED" })) {
+        closedCount += 1;
+      }
+    }
+    return closedCount;
   },
 
-  async closeExpiredBatch() {
-    return 0;
+  async closeExpiredBatch(input) {
+    const safeLimit = Math.max(1, Math.min(100, input.limit));
+    const rows = await db
+      .select({ id: orders.id })
+      .from(orders)
+      .where(and(eq(orders.status, "PENDING_PAYMENT"), lte(orders.expiresAt, input.now)))
+      .orderBy(asc(orders.expiresAt), asc(orders.id))
+      .limit(safeLimit);
+    let closedCount = 0;
+    for (const row of rows) {
+      if (await closePendingOrder({ orderId: row.id, now: input.now, status: "CLOSED" })) {
+        closedCount += 1;
+      }
+    }
+    return closedCount;
   },
 };
