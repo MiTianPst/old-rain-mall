@@ -1,0 +1,5 @@
+"use client";
+import { useActionState } from "react";
+import { markOrderCompletedAction, markOrderShippedAction, type AdminOrderActionState } from "@/app/actions/admin-order";
+const initial: AdminOrderActionState = { status: "IDLE", message: "" };
+export function AdminOrderStatusActions({ orderNo, status }: { orderNo: string; status: "PAID" | "SHIPPED" }) { const action = status === "PAID" ? markOrderShippedAction : markOrderCompletedAction; const [state, formAction, pending] = useActionState(action, initial); const label = status === "PAID" ? "确认发货" : "确认完成"; return <form action={formAction} className="mt-6"><input type="hidden" name="orderNo" value={orderNo} /><button disabled={pending} onClick={(event) => { if (!window.confirm(`${label}订单 ${orderNo} 吗？`)) event.preventDefault(); }} className="rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-amber-800 disabled:opacity-50">{pending ? "处理中…" : label}</button><p className={`mt-2 text-sm ${state.status === "SUCCESS" ? "text-emerald-700" : "text-rose-700"}`}>{state.message}</p></form>; }
