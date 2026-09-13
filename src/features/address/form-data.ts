@@ -29,7 +29,7 @@ function readAddressFields(formData: FormData) {
     city: formData.get("city"),
     district: formData.get("district"),
     detailAddress: formData.get("detailAddress"),
-    label: formData.get("label"),
+    label: formData.get("label") ?? undefined,
   };
 }
 

@@ -29,6 +29,32 @@ function errorState(message: string): AddressActionState {
   return { status: "ERROR", message };
 }
 
+function logActionError(operation: string, error: unknown) {
+  console.error("收货地址操作失败", { operation, error });
+}
+
+async function getAuthenticatedUserId(): Promise<
+  { ok: true; userId: string } | { ok: false; state: AddressActionState }
+> {
+  try {
+    const session = await getCurrentSession();
+    if (!session) {
+      return {
+        ok: false,
+        state: errorState("请先登录后再管理收货地址"),
+      };
+    }
+
+    return { ok: true, userId: session.user.id };
+  } catch (error) {
+    logActionError("读取登录状态", error);
+    return {
+      ok: false,
+      state: errorState("登录状态已失效，请重新登录"),
+    };
+  }
+}
+
 function revalidateAddressPages() {
   revalidatePath("/addresses");
   revalidatePath("/checkout");
@@ -38,17 +64,20 @@ export async function createAddressAction(
   _previousState: AddressActionState,
   formData: FormData,
 ): Promise<AddressActionState> {
+  const authentication = await getAuthenticatedUserId();
+  if (!authentication.ok) return authentication.state;
+
   const parsed = parseAddressFormData(formData);
   if (!parsed.success) return invalidInputState(parsed.fieldErrors);
 
   let result: Awaited<ReturnType<typeof addressService.create>>;
   try {
-    const session = await getCurrentSession();
     result = await addressService.create({
-      userId: session?.user.id ?? null,
+      userId: authentication.userId,
       input: parsed.data,
     });
-  } catch {
+  } catch (error) {
+    logActionError("创建地址", error);
     return errorState("保存收货地址失败，请稍后重试");
   }
 
@@ -62,6 +91,9 @@ export async function updateAddressAction(
   _previousState: AddressActionState,
   formData: FormData,
 ): Promise<AddressActionState> {
+  const authentication = await getAuthenticatedUserId();
+  if (!authentication.ok) return authentication.state;
+
   const address = parseAddressIdFormData(formData);
   if (!address.success) return invalidInputState(address.fieldErrors);
 
@@ -70,13 +102,13 @@ export async function updateAddressAction(
 
   let result: Awaited<ReturnType<typeof addressService.update>>;
   try {
-    const session = await getCurrentSession();
     result = await addressService.update({
-      userId: session?.user.id ?? null,
+      userId: authentication.userId,
       addressId: address.addressId,
       input: parsed.data,
     });
-  } catch {
+  } catch (error) {
+    logActionError("更新地址", error);
     return errorState("更新收货地址失败，请稍后重试");
   }
 
@@ -90,17 +122,20 @@ export async function removeAddressAction(
   _previousState: AddressActionState,
   formData: FormData,
 ): Promise<AddressActionState> {
+  const authentication = await getAuthenticatedUserId();
+  if (!authentication.ok) return authentication.state;
+
   const address = parseAddressIdFormData(formData);
   if (!address.success) return invalidInputState(address.fieldErrors);
 
   try {
-    const session = await getCurrentSession();
     const result = await addressService.remove({
-      userId: session?.user.id ?? null,
+      userId: authentication.userId,
       addressId: address.addressId,
     });
     if (!result.ok) return errorState(result.message);
-  } catch {
+  } catch (error) {
+    logActionError("删除地址", error);
     return errorState("删除收货地址失败，请稍后重试");
   }
 
@@ -112,17 +147,20 @@ export async function setDefaultAddressAction(
   _previousState: AddressActionState,
   formData: FormData,
 ): Promise<AddressActionState> {
+  const authentication = await getAuthenticatedUserId();
+  if (!authentication.ok) return authentication.state;
+
   const address = parseAddressIdFormData(formData);
   if (!address.success) return invalidInputState(address.fieldErrors);
 
   try {
-    const session = await getCurrentSession();
     const result = await addressService.setDefault({
-      userId: session?.user.id ?? null,
+      userId: authentication.userId,
       addressId: address.addressId,
     });
     if (!result.ok) return errorState(result.message);
-  } catch {
+  } catch (error) {
+    logActionError("设置默认地址", error);
     return errorState("设置默认地址失败，请稍后重试");
   }
 
