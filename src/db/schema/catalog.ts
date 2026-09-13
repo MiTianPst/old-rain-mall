@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   int,
   mysqlEnum,
@@ -11,6 +12,7 @@ import {
 
 export const categoryStatuses = ["ACTIVE", "HIDDEN"] as const;
 export const productStatuses = ["DRAFT", "ACTIVE", "ARCHIVED"] as const;
+export const variantStatuses = ["ACTIVE", "ARCHIVED"] as const;
 
 export const categories = mysqlTable(
   "categories",
@@ -71,8 +73,34 @@ export const productImages = mysqlTable(
       .references(() => products.id, { onDelete: "cascade" }),
     url: varchar("url", { length: 1000 }).notNull(),
     altText: varchar("alt_text", { length: 255 }),
+    isPrimary: boolean("is_primary").notNull().default(false),
     sortOrder: int("sort_order", { unsigned: true }).notNull().default(0),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [index("product_images_product_sort_idx").on(table.productId, table.sortOrder)],
+);
+
+export const productVariants = mysqlTable(
+  "product_variants",
+  {
+    id: int("id", { unsigned: true }).autoincrement().primaryKey(),
+    productId: int("product_id", { unsigned: true })
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    skuCode: varchar("sku_code", { length: 255 }).notNull(),
+    name: varchar("name", { length: 200 }).notNull(),
+    attributesJson: text("attributes_json").notNull(),
+    priceCents: int("price_cents", { unsigned: true }).notNull(),
+    stock: int("stock", { unsigned: true }).notNull().default(0),
+    status: mysqlEnum("status", variantStatuses).notNull().default("ACTIVE"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (table) => [
+    uniqueIndex("product_variants_sku_code_unique").on(table.skuCode),
+    index("product_variants_product_status_idx").on(
+      table.productId,
+      table.status,
+    ),
+  ],
 );

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "test": "tsx --test \"src/**/*.test.ts\"",
-    "test:db": "node --conditions=react-server --env-file=.env --import ./scripts/enable-db-tests.mjs --import tsx --test --test-concurrency=1 src/server/repositories/cart-repository.integration.test.ts src/server/repositories/transaction-flow.integration.test.ts",
+    "test:db": "node --conditions=react-server --env-file=.env --import ./scripts/enable-db-tests.mjs --import tsx --test --test-concurrency=1 src/server/repositories/cart-repository.integration.test.ts src/server/repositories/product-variant.integration.test.ts src/server/repositories/transaction-flow.integration.test.ts",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",

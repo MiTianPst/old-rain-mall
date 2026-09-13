@@ -6,13 +6,14 @@ import {
   int,
   mysqlEnum,
   mysqlTable,
+  text,
   timestamp,
   tinyint,
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
 
-import { products } from "./catalog";
+import { products, productVariants } from "./catalog";
 import { users } from "./auth";
 
 export const orderStatuses = [
@@ -26,6 +27,14 @@ export const orderStatuses = [
 
 export const paymentStatuses = ["PENDING", "SUCCESS", "FAILED"] as const;
 export const paymentMethods = ["MOCK"] as const;
+export const inventoryTransactionTypes = [
+  "INITIAL",
+  "INBOUND",
+  "SALE",
+  "CANCEL_RESTORE",
+  "REFUND_RESTORE",
+  "ADJUSTMENT",
+] as const;
 
 export const cartItems = mysqlTable(
   "cart_items",
@@ -37,14 +46,17 @@ export const cartItems = mysqlTable(
     productId: int("product_id", { unsigned: true })
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
+    variantId: int("variant_id", { unsigned: true })
+      .notNull()
+      .references(() => productVariants.id, { onDelete: "cascade" }),
     quantity: int("quantity", { unsigned: true }).notNull().default(1),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
   },
   (table) => [
-    uniqueIndex("cart_items_user_product_unique").on(
+    uniqueIndex("cart_items_user_variant_unique").on(
       table.userId,
-      table.productId,
+      table.variantId,
     ),
     index("cart_items_user_id_idx").on(table.userId),
     check("cart_items_quantity_check", sql`${table.quantity} > 0`),
@@ -127,7 +139,12 @@ export const orderItems = mysqlTable(
     productId: int("product_id", { unsigned: true })
       .notNull()
       .references(() => products.id, { onDelete: "restrict" }),
+    variantId: int("variant_id", { unsigned: true })
+      .notNull()
+      .references(() => productVariants.id, { onDelete: "restrict" }),
     productName: varchar("product_name", { length: 200 }).notNull(),
+    variantName: varchar("variant_name", { length: 200 }).notNull(),
+    variantAttributesJson: text("variant_attributes_json").notNull(),
     productCoverUrl: varchar("product_cover_url", { length: 1000 }),
     unitPriceCents: int("unit_price_cents", { unsigned: true }).notNull(),
     quantity: int("quantity", { unsigned: true }).notNull(),
@@ -139,7 +156,41 @@ export const orderItems = mysqlTable(
   },
   (table) => [
     index("order_items_order_id_idx").on(table.orderId),
+    index("order_items_variant_id_idx").on(table.variantId),
     check("order_items_quantity_check", sql`${table.quantity} > 0`),
+  ],
+);
+
+export const inventoryTransactions = mysqlTable(
+  "inventory_transactions",
+  {
+    id: int("id", { unsigned: true }).autoincrement().primaryKey(),
+    variantId: int("variant_id", { unsigned: true })
+      .notNull()
+      .references(() => productVariants.id, { onDelete: "restrict" }),
+    type: mysqlEnum("type", inventoryTransactionTypes).notNull(),
+    quantityDelta: int("quantity_delta").notNull(),
+    stockBefore: int("stock_before", { unsigned: true }).notNull(),
+    stockAfter: int("stock_after", { unsigned: true }).notNull(),
+    referenceType: varchar("reference_type", { length: 50 }),
+    referenceId: varchar("reference_id", { length: 100 }),
+    operatorUserId: varchar("operator_user_id", { length: 36 }).references(
+      () => users.id,
+      { onDelete: "restrict" },
+    ),
+    note: varchar("note", { length: 500 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("inventory_transactions_variant_created_idx").on(
+      table.variantId,
+      table.createdAt,
+    ),
+    index("inventory_transactions_reference_idx").on(
+      table.referenceType,
+      table.referenceId,
+    ),
+    index("inventory_transactions_operator_idx").on(table.operatorUserId),
   ],
 );
 

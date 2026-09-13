@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { db, pool } from "./client";
-import { categories, products } from "./schema";
+import { categories, products, productVariants } from "./schema";
 
 const categorySeeds = [
   {
@@ -99,6 +99,43 @@ async function seed() {
           name: product.name,
           summary: product.summary,
           description: product.description,
+          priceCents: product.priceCents,
+          stock: product.stock,
+          status: "ACTIVE",
+        },
+      });
+  }
+
+  const seededProducts = await db
+    .select({
+      id: products.id,
+      slug: products.slug,
+      priceCents: products.priceCents,
+      stock: products.stock,
+    })
+    .from(products);
+
+  for (const product of seededProducts) {
+    if (!productSeeds.some((seedProduct) => seedProduct.slug === product.slug)) {
+      continue;
+    }
+
+    await db
+      .insert(productVariants)
+      .values({
+        productId: product.id,
+        skuCode: `${product.slug}-default`,
+        name: "默认规格",
+        attributesJson: JSON.stringify({}),
+        priceCents: product.priceCents,
+        stock: product.stock,
+        status: "ACTIVE",
+      })
+      .onDuplicateKeyUpdate({
+        set: {
+          productId: product.id,
+          name: "默认规格",
+          attributesJson: JSON.stringify({}),
           priceCents: product.priceCents,
           stock: product.stock,
           status: "ACTIVE",

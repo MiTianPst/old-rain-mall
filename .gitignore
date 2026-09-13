@@ -53,6 +53,7 @@ service-account*.json
 /db-data/
 /database-dumps/
 /backups/
+/public/uploads/
 *.sqlite
 *.sqlite3
 *.db
