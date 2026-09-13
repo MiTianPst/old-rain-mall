@@ -148,6 +148,7 @@ export const payments = mysqlTable(
   {
     id: int("id", { unsigned: true }).autoincrement().primaryKey(),
     paymentNo: varchar("payment_no", { length: 32 }).notNull(),
+    providerTradeNo: varchar("provider_trade_no", { length: 128 }),
     orderId: int("order_id", { unsigned: true })
       .notNull()
       .references(() => orders.id, { onDelete: "restrict" }),
@@ -165,6 +166,7 @@ export const payments = mysqlTable(
   },
   (table) => [
     uniqueIndex("payments_payment_no_unique").on(table.paymentNo),
+    uniqueIndex("payments_provider_trade_no_unique").on(table.providerTradeNo),
     uniqueIndex("payments_order_id_unique").on(table.orderId),
     index("payments_status_created_idx").on(table.status, table.createdAt),
   ],
