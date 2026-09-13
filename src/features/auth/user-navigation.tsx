@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { getCurrentSession } from "@/server/auth/session";
+import { getMembershipLabel, type MembershipLevel } from "@/lib/membership";
+import { formatCny } from "@/lib/money";
 
 import { LogoutButton } from "./logout-button";
 
@@ -20,8 +22,11 @@ export async function UserNavigation() {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="hidden max-w-32 truncate text-stone-500 sm:inline">
-        {session.user.name}
+      <span className="hidden text-right text-stone-500 sm:block">
+        <span className="block max-w-32 truncate">{session.user.name}</span>
+        <span className="block text-xs text-amber-800">
+          {getMembershipLabel((session.user.membershipLevel ?? 0) as MembershipLevel)} · 累计 {formatCny(session.user.lifetimePaidCents ?? 0)}
+        </span>
       </span>
       <LogoutButton />
     </div>
