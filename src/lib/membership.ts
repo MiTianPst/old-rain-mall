@@ -3,7 +3,7 @@ export const membershipTiers = [
     level: 0,
     name: "普通会员",
     minimumPaidCents: 0,
-    discountRateBps: 10000,
+    discountRateBps: 10_000,
   },
   {
     level: 1,
@@ -25,37 +25,66 @@ export const membershipTiers = [
   },
 ] as const;
 
-export type MembershipLevel = (typeof membershipTiers)[number]["level"];
+export type MembershipLevel = 0 | 1 | 2 | 3;
 
-export function getMembershipTier(lifetimePaidCents: number) {
-  for (let index = membershipTiers.length - 1; index >= 0; index -= 1) {
-    const tier = membershipTiers[index];
+function assertNonNegativeSafeInteger(value: number, name: string) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new RangeError(`${name}必须是非负安全整数`);
+  }
+}
 
-    if (tier && lifetimePaidCents >= tier.minimumPaidCents) {
-      return tier;
-    }
+function getTierByLevel(level: number) {
+  if (!Number.isInteger(level) || level < 0 || level > 3) {
+    throw new RangeError("会员等级必须是 0、1、2 或 3");
   }
 
-  return membershipTiers[0];
+  return membershipTiers[level as MembershipLevel];
+}
+
+export function getMembershipLevel(lifetimePaidCents: number): MembershipLevel {
+  assertNonNegativeSafeInteger(lifetimePaidCents, "累计实付金额");
+
+  for (let index = membershipTiers.length - 1; index >= 0; index -= 1) {
+    const tier = membershipTiers[index];
+    if (tier && lifetimePaidCents >= tier.minimumPaidCents) return tier.level;
+  }
+
+  return 0;
+}
+
+export function getDiscountRateBps(level: MembershipLevel): number {
+  return getTierByLevel(level).discountRateBps;
+}
+
+export function getMembershipLabel(level: MembershipLevel): string {
+  return getTierByLevel(level).name;
+}
+
+export function getMembershipTier(lifetimePaidCents: number) {
+  return membershipTiers[getMembershipLevel(lifetimePaidCents)];
 }
 
 export function getMembershipTierByLevel(level: MembershipLevel) {
-  return membershipTiers[level];
+  return getTierByLevel(level);
 }
 
 export function calculateMemberPrice(
   originalAmountCents: number,
   level: MembershipLevel,
 ) {
-  const tier = getMembershipTierByLevel(level);
-  const discountedAmountCents = Math.round(
-    (originalAmountCents * tier.discountRateBps) / 10_000,
+  assertNonNegativeSafeInteger(originalAmountCents, "原始金额");
+  const discountRateBps = getDiscountRateBps(level);
+  const discountedAmountCents = Math.floor(
+    (originalAmountCents * discountRateBps) / 10_000,
   );
+  if (!Number.isSafeInteger(discountedAmountCents)) {
+    throw new RangeError("折后金额超出安全整数范围");
+  }
 
   return {
     originalAmountCents,
     discountedAmountCents,
     memberDiscountCents: originalAmountCents - discountedAmountCents,
-    discountRateBps: tier.discountRateBps,
+    discountRateBps,
   };
 }
