@@ -22,6 +22,11 @@ export async function UserNavigation() {
 
   return (
     <div className="flex items-center gap-3">
+      {session.user.role === "ADMIN" ? (
+        <Link href="/admin" className="rounded-full border border-amber-300 px-3 py-1.5 text-xs text-amber-800 hover:bg-amber-50">
+          管理后台
+        </Link>
+      ) : null}
       <span className="hidden text-right text-stone-500 sm:block">
         <span className="block max-w-32 truncate">{session.user.name}</span>
         <span className="block text-xs text-amber-800">
