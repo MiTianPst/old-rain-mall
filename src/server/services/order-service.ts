@@ -26,7 +26,10 @@ export type OrderRecord = {
   cancelledAt: Date | null;
   items: Array<{
     productId: number;
+    variantId: number;
     productName: string;
+    variantName: string;
+    variantAttributesJson: string;
     productCoverUrl: string | null;
     unitPriceCents: number;
     quantity: number;

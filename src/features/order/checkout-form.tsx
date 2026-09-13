@@ -18,6 +18,7 @@ export function CheckoutForm({ checkout, pricing }: { checkout: CheckoutRecord; 
   const hasUnavailableItem = checkout.items.some(
     (item) =>
       item.product.status !== "ACTIVE" ||
+      item.product.variantStatus !== "ACTIVE" ||
       item.product.categoryStatus !== "ACTIVE" ||
       item.product.stock < item.quantity,
   );
@@ -62,6 +63,12 @@ export function CheckoutForm({ checkout, pricing }: { checkout: CheckoutRecord; 
                 <ProductVisual productId={item.product.id} name={item.product.name} coverUrl={item.product.coverUrl} />
                 <div className="min-w-0">
                   <p className="truncate font-medium">{item.product.name}</p>
+                  <p className="mt-1 text-xs text-stone-500">
+                    {item.product.variantName || "默认规格"}
+                    {Object.values(item.product.variantAttributes).length > 0
+                      ? ` · ${Object.values(item.product.variantAttributes).join(" / ")}`
+                      : ""}
+                  </p>
                   <p className="mt-1 text-sm text-stone-500">{formatCny(item.product.priceCents)} × {item.quantity}</p>
                 </div>
                 <p className="font-medium">{formatCny(item.product.priceCents * item.quantity)}</p>

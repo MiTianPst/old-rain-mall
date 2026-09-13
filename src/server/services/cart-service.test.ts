@@ -27,7 +27,7 @@ test("未登录用户不能写入购物车", async () => {
   const service = createCartService(fake.repository);
 
   assert.deepEqual(
-    await service.addItem({ userId: null, productId: 1, quantity: 1 }),
+    await service.addItem({ userId: null, variantId: 1, quantity: 1 }),
     { ok: false, code: "UNAUTHORIZED", message: "请先登录后再加入购物车" },
   );
   assert.equal(fake.calls(), 0);
@@ -39,7 +39,7 @@ test("不可售商品不能写入购物车", async () => {
   );
 
   assert.deepEqual(
-    await service.addItem({ userId: "user-1", productId: 9, quantity: 1 }),
+    await service.addItem({ userId: "user-1", variantId: 9, quantity: 1 }),
     { ok: false, code: "PRODUCT_UNAVAILABLE", message: "商品不存在或已下架" },
   );
 });
@@ -50,7 +50,7 @@ test("购物车数量超过库存时拒绝写入", async () => {
   );
 
   assert.deepEqual(
-    await service.addItem({ userId: "user-1", productId: 1, quantity: 3 }),
+    await service.addItem({ userId: "user-1", variantId: 1, quantity: 3 }),
     { ok: false, code: "STOCK_EXCEEDED", message: "库存不足，当前仅剩 2 件" },
   );
 });
@@ -60,8 +60,19 @@ test("数量不是正整数时拒绝写入", async () => {
   const service = createCartService(fake.repository);
 
   assert.deepEqual(
-    await service.addItem({ userId: "user-1", productId: 1, quantity: 0 }),
+    await service.addItem({ userId: "user-1", variantId: 1, quantity: 0 }),
     { ok: false, code: "INVALID_INPUT", message: "商品数量必须是正整数" },
+  );
+  assert.equal(fake.calls(), 0);
+});
+
+test("SKU 标识不是正整数时拒绝写入", async () => {
+  const fake = repositoryWithResult({ status: "ADDED", quantity: 1 });
+  const service = createCartService(fake.repository);
+
+  assert.deepEqual(
+    await service.addItem({ userId: "user-1", variantId: 0, quantity: 1 }),
+    { ok: false, code: "INVALID_INPUT", message: "商品规格参数不正确" },
   );
   assert.equal(fake.calls(), 0);
 });
@@ -75,11 +86,11 @@ test("首次写入或重复添加都返回数据库中的最终数量", async ()
   );
 
   assert.deepEqual(
-    await first.addItem({ userId: "user-1", productId: 1, quantity: 1 }),
+    await first.addItem({ userId: "user-1", variantId: 1, quantity: 1 }),
     { ok: true, quantity: 1, message: "已加入购物车" },
   );
   assert.deepEqual(
-    await repeated.addItem({ userId: "user-1", productId: 1, quantity: 1 }),
+    await repeated.addItem({ userId: "user-1", variantId: 1, quantity: 1 }),
     { ok: true, quantity: 2, message: "已加入购物车，当前共 2 件" },
   );
 });
@@ -180,12 +191,16 @@ test("删除只能作用于当前用户拥有的购物车条目", async () => {
 test("合计只统计分类公开、商品在售且库存充足的条目", async () => {
   const baseProduct = {
     id: 1,
+    variantId: 11,
     slug: "product",
     name: "商品",
+    variantName: "默认规格",
+    variantAttributes: {},
     priceCents: 1000,
     stock: 9,
     coverUrl: null,
     status: "ACTIVE" as const,
+    variantStatus: "ACTIVE" as const,
   };
   const repository = {
     ...repositoryWithResult({ status: "ADDED", quantity: 1 }).repository,

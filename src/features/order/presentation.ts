@@ -24,3 +24,17 @@ export function formatDiscountRate(discountRateBps: number) {
   const discount = discountRateBps / 1000;
   return `${Number.isInteger(discount) ? discount.toFixed(0) : discount.toFixed(1)} 折`;
 }
+
+export function formatVariantSnapshot(name: string, attributesJson: string) {
+  let attributes: string[] = [];
+  try {
+    const parsed: unknown = JSON.parse(attributesJson);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      attributes = Object.values(parsed).filter((value): value is string => typeof value === "string" && value.length > 0);
+    }
+  } catch {
+    // 历史订单可能没有有效的规格 JSON，统一降级为默认规格。
+  }
+  const parts = [name.trim(), attributes.join(" / ")].filter(Boolean);
+  return parts.join(" · ") || "默认规格";
+}

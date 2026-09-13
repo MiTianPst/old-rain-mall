@@ -8,7 +8,7 @@ import { getCurrentSession } from "@/server/auth/session";
 import { cartService } from "@/server/cart";
 
 const addToCartSchema = z.object({
-  productId: z.coerce.number().int().positive(),
+  variantId: z.coerce.number().int().positive(),
   quantity: z.coerce.number().int().positive().max(99),
   returnTo: z.string().optional(),
 });
@@ -29,7 +29,7 @@ export async function addToCartAction(
   formData: FormData,
 ): Promise<AddToCartState> {
   const parsed = addToCartSchema.safeParse({
-    productId: formData.get("productId"),
+    variantId: formData.get("variantId"),
     quantity: formData.get("quantity"),
     returnTo: formData.get("returnTo"),
   });
@@ -41,7 +41,7 @@ export async function addToCartAction(
   const session = await getCurrentSession();
   const result = await cartService.addItem({
     userId: session?.user.id ?? null,
-    productId: parsed.data.productId,
+    variantId: parsed.data.variantId,
     quantity: parsed.data.quantity,
   });
 

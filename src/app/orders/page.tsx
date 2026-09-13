@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { formatOrderTime, orderStatusLabels } from "@/features/order/presentation";
+import { formatOrderTime, formatVariantSnapshot, orderStatusLabels } from "@/features/order/presentation";
 import { formatCny } from "@/lib/money";
 import { getCurrentSession } from "@/server/auth/session";
 import { orderService } from "@/server/orders";
@@ -30,7 +30,7 @@ export default async function OrdersPage() {
                 <span className="rounded-full bg-stone-100 px-3 py-1 text-sm text-stone-700">{orderStatusLabels[order.status]}</span>
               </div>
               <div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-stone-100 pt-5">
-                <p className="text-sm text-stone-600">{order.items.map((item) => `${item.productName} × ${item.quantity}`).join("、")}</p>
+                <p className="text-sm text-stone-600">{order.items.map((item) => `${item.productName}（${formatVariantSnapshot(item.variantName, item.variantAttributesJson)}）× ${item.quantity}`).join("、")}</p>
                 <p className="font-semibold text-amber-800">实付 {formatCny(order.totalCents)}</p>
               </div>
             </Link>

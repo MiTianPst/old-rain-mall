@@ -4,7 +4,7 @@ import test from "node:test";
 const runDatabaseTests = process.env.RUN_DB_TESTS === "1";
 
 test(
-  "MySQL 购物车校验分类可见性、所有权与重复累加",
+  "MySQL 购物车按 SKU 分行并校验 SKU、商品和分类可售性",
   { skip: !runDatabaseTests },
   async () => {
     const [{ db, pool }, schema, { cartRepository }, drizzle] =
@@ -21,6 +21,7 @@ test(
     let hiddenCategoryId: number | undefined;
     let activeProductId: number | undefined;
     let hiddenProductId: number | undefined;
+    const variantIds: number[] = [];
 
     try {
       await db.insert(schema.users).values([
@@ -80,10 +81,62 @@ test(
       activeProductId = activeProduct.id;
       hiddenProductId = hiddenProduct.id;
 
+      const variants = await db
+        .insert(schema.productVariants)
+        .values([
+          {
+            productId: activeProductId,
+            skuCode: `ACTIVE-A-${suffix}`,
+            name: "暖白",
+            attributesJson: JSON.stringify({ color: "暖白" }),
+            priceCents: 1200,
+            stock: 5,
+            status: "ACTIVE",
+          },
+          {
+            productId: activeProductId,
+            skuCode: `ACTIVE-B-${suffix}`,
+            name: "深灰",
+            attributesJson: JSON.stringify({ color: "深灰" }),
+            priceCents: 1500,
+            stock: 3,
+            status: "ACTIVE",
+          },
+          {
+            productId: activeProductId,
+            skuCode: `ARCHIVED-${suffix}`,
+            name: "旧规格",
+            attributesJson: "{}",
+            priceCents: 800,
+            stock: 9,
+            status: "ARCHIVED",
+          },
+          {
+            productId: hiddenProductId,
+            skuCode: `HIDDEN-${suffix}`,
+            name: "隐藏分类规格",
+            attributesJson: "{}",
+            priceCents: 900,
+            stock: 9,
+            status: "ACTIVE",
+          },
+        ])
+        .$returningId();
+      variantIds.push(...variants.map((variant) => variant.id));
+      const [firstVariantId, secondVariantId, archivedVariantId, hiddenVariantId] = variantIds;
+
       assert.deepEqual(
         await cartRepository.addItem({
           userId: ownerId,
-          productId: hiddenProductId,
+          variantId: hiddenVariantId!,
+          quantity: 1,
+        }),
+        { status: "PRODUCT_UNAVAILABLE" },
+      );
+      assert.deepEqual(
+        await cartRepository.addItem({
+          userId: ownerId,
+          variantId: archivedVariantId!,
           quantity: 1,
         }),
         { status: "PRODUCT_UNAVAILABLE" },
@@ -92,7 +145,7 @@ test(
       assert.deepEqual(
         await cartRepository.addItem({
           userId: ownerId,
-          productId: activeProductId,
+          variantId: firstVariantId!,
           quantity: 1,
         }),
         { status: "ADDED", quantity: 1 },
@@ -100,21 +153,27 @@ test(
       assert.deepEqual(
         await cartRepository.addItem({
           userId: ownerId,
-          productId: activeProductId,
+          variantId: firstVariantId!,
           quantity: 1,
         }),
         { status: "ADDED", quantity: 2 },
       );
+      assert.deepEqual(
+        await cartRepository.addItem({
+          userId: ownerId,
+          variantId: secondVariantId!,
+          quantity: 1,
+        }),
+        { status: "ADDED", quantity: 1 },
+      );
 
-      const [item] = await db
-        .select({ id: schema.cartItems.id })
+      const items = await db
+        .select({ id: schema.cartItems.id, variantId: schema.cartItems.variantId })
         .from(schema.cartItems)
-        .where(
-          drizzle.and(
-            drizzle.eq(schema.cartItems.userId, ownerId),
-            drizzle.eq(schema.cartItems.productId, activeProductId),
-          ),
-        );
+        .where(drizzle.eq(schema.cartItems.userId, ownerId))
+        .orderBy(schema.cartItems.variantId);
+      assert.equal(items.length, 2);
+      const item = items.find((candidate) => candidate.variantId === firstVariantId)!;
 
       assert.deepEqual(
         await cartRepository.updateItem({
@@ -150,8 +209,15 @@ test(
       );
 
       const [listedItem] = await cartRepository.listItems(ownerId);
-      assert.equal(listedItem.id, item.id);
-      assert.equal(listedItem.quantity, 5);
+      const listedFirst = (await cartRepository.listItems(ownerId)).find(
+        (candidate) => candidate.product.variantId === firstVariantId,
+      )!;
+      assert.equal(listedFirst.id, item.id);
+      assert.equal(listedFirst.quantity, 5);
+      assert.equal(listedFirst.product.variantName, "暖白");
+      assert.deepEqual(listedFirst.product.variantAttributes, { color: "暖白" });
+      assert.equal(listedFirst.product.priceCents, 1200);
+      assert.equal(listedFirst.product.stock, 5);
       assert.equal(listedItem.product.categoryStatus, "ACTIVE");
 
       await db
@@ -185,6 +251,11 @@ test(
       await db
         .delete(schema.users)
         .where(drizzle.inArray(schema.users.id, [ownerId, strangerId]));
+      if (variantIds.length) {
+        await db
+          .delete(schema.productVariants)
+          .where(drizzle.inArray(schema.productVariants.id, variantIds));
+      }
       if (activeProductId && hiddenProductId) {
         await db
           .delete(schema.products)

@@ -6,10 +6,12 @@ import { db } from "@/db";
 import {
   cartItems,
   categories,
+  inventoryTransactions,
   orderItems,
   orders,
   payments,
   products,
+  productVariants,
   userAddresses,
   users,
 } from "@/db/schema";
@@ -61,7 +63,10 @@ async function loadOrderItems(orderIds: number[]) {
     .select({
       orderId: orderItems.orderId,
       productId: orderItems.productId,
+      variantId: orderItems.variantId,
       productName: orderItems.productName,
+      variantName: orderItems.variantName,
+      variantAttributesJson: orderItems.variantAttributesJson,
       productCoverUrl: orderItems.productCoverUrl,
       unitPriceCents: orderItems.unitPriceCents,
       quantity: orderItems.quantity,
@@ -76,7 +81,10 @@ async function loadOrderItems(orderIds: number[]) {
     const items = grouped.get(row.orderId) ?? [];
     items.push({
       productId: row.productId,
+      variantId: row.variantId,
       productName: row.productName,
+      variantName: row.variantName,
+      variantAttributesJson: row.variantAttributesJson,
       productCoverUrl: row.productCoverUrl,
       unitPriceCents: row.unitPriceCents,
       quantity: row.quantity,
@@ -121,25 +129,30 @@ async function createOrderTransaction(input: Parameters<OrderRepository["create"
       .select({
         cartItemId: cartItems.id,
         productId: products.id,
+        variantId: productVariants.id,
         quantity: cartItems.quantity,
         productName: products.name,
+        variantName: productVariants.name,
+        variantAttributesJson: productVariants.attributesJson,
         productCoverUrl: products.coverUrl,
-        unitPriceCents: products.priceCents,
-        stock: products.stock,
+        unitPriceCents: productVariants.priceCents,
+        stock: productVariants.stock,
+        variantStatus: productVariants.status,
         productStatus: products.status,
         categoryStatus: categories.status,
       })
       .from(cartItems)
-      .innerJoin(products, eq(cartItems.productId, products.id))
+      .innerJoin(productVariants, eq(cartItems.variantId, productVariants.id))
+      .innerJoin(products, eq(productVariants.productId, products.id))
       .innerJoin(categories, eq(products.categoryId, categories.id))
       .where(eq(cartItems.userId, input.userId))
-      .orderBy(asc(products.id))
+      .orderBy(asc(productVariants.id))
       .for("update");
 
     if (items.length === 0) throw new OrderTransactionError({ status: "EMPTY_CART" });
 
     for (const item of items) {
-      if (item.productStatus !== "ACTIVE" || item.categoryStatus !== "ACTIVE") {
+      if (item.variantStatus !== "ACTIVE" || item.productStatus !== "ACTIVE" || item.categoryStatus !== "ACTIVE") {
         throw new OrderTransactionError({
           status: "PRODUCT_UNAVAILABLE",
           productName: item.productName,
@@ -163,13 +176,13 @@ async function createOrderTransaction(input: Parameters<OrderRepository["create"
 
     for (const item of items) {
       const result = await transaction
-        .update(products)
-        .set({ stock: sql`${products.stock} - ${item.quantity}` })
+        .update(productVariants)
+        .set({ stock: sql`${productVariants.stock} - ${item.quantity}` })
         .where(
           and(
-            eq(products.id, item.productId),
-            eq(products.status, "ACTIVE"),
-            gte(products.stock, item.quantity),
+            eq(productVariants.id, item.variantId),
+            eq(productVariants.status, "ACTIVE"),
+            gte(productVariants.stock, item.quantity),
           ),
         );
       if (result[0].affectedRows !== 1) {
@@ -179,6 +192,18 @@ async function createOrderTransaction(input: Parameters<OrderRepository["create"
           stock: item.stock,
         });
       }
+      await transaction.insert(inventoryTransactions).values({
+        variantId: item.variantId,
+        type: "SALE",
+        quantityDelta: -item.quantity,
+        stockBefore: item.stock,
+        stockAfter: item.stock - item.quantity,
+        referenceType: "ORDER",
+        referenceId: input.orderNo,
+        operatorUserId: input.userId,
+        note: "订单销售出库",
+        createdAt: input.now,
+      });
     }
 
     const recipientAddress = [
@@ -211,7 +236,10 @@ async function createOrderTransaction(input: Parameters<OrderRepository["create"
       items.map((item) => ({
         orderId,
         productId: item.productId,
+        variantId: item.variantId,
         productName: item.productName,
+        variantName: item.variantName,
+        variantAttributesJson: item.variantAttributesJson,
         productCoverUrl: item.productCoverUrl,
         unitPriceCents: item.unitPriceCents,
         quantity: item.quantity,
@@ -251,7 +279,7 @@ async function closePendingOrder(input: {
 }) {
   return db.transaction(async (transaction) => {
     const [order] = await transaction
-      .select({ id: orders.id, status: orders.status, expiresAt: orders.expiresAt })
+      .select({ id: orders.id, orderNo: orders.orderNo, userId: orders.userId, status: orders.status, expiresAt: orders.expiresAt })
       .from(orders)
       .where(eq(orders.id, input.orderId))
       .limit(1)
@@ -261,17 +289,30 @@ async function closePendingOrder(input: {
     if (input.status === "CLOSED" && order.expiresAt > input.now) return false;
 
     const items = await transaction
-      .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+      .select({ variantId: orderItems.variantId, quantity: orderItems.quantity, stock: productVariants.stock })
       .from(orderItems)
+      .innerJoin(productVariants, eq(orderItems.variantId, productVariants.id))
       .where(eq(orderItems.orderId, order.id))
-      .orderBy(asc(orderItems.productId))
+      .orderBy(asc(orderItems.variantId))
       .for("update");
 
     for (const item of items) {
       await transaction
-        .update(products)
-        .set({ stock: sql`${products.stock} + ${item.quantity}` })
-        .where(eq(products.id, item.productId));
+        .update(productVariants)
+        .set({ stock: sql`${productVariants.stock} + ${item.quantity}` })
+        .where(eq(productVariants.id, item.variantId));
+      await transaction.insert(inventoryTransactions).values({
+        variantId: item.variantId,
+        type: "CANCEL_RESTORE",
+        quantityDelta: item.quantity,
+        stockBefore: item.stock,
+        stockAfter: item.stock + item.quantity,
+        referenceType: "ORDER",
+        referenceId: order.orderNo,
+        operatorUserId: order.userId,
+        note: input.status === "CANCELLED" ? "订单取消恢复库存" : "订单超时恢复库存",
+        createdAt: input.now,
+      });
     }
 
     await transaction
@@ -322,17 +363,22 @@ export const orderRepository: OrderRepository = {
           quantity: cartItems.quantity,
           product: {
             id: products.id,
+            variantId: productVariants.id,
             slug: products.slug,
             name: products.name,
-            priceCents: products.priceCents,
-            stock: products.stock,
+            variantName: productVariants.name,
+            variantAttributesJson: productVariants.attributesJson,
+            priceCents: productVariants.priceCents,
+            stock: productVariants.stock,
             coverUrl: products.coverUrl,
             status: products.status,
+            variantStatus: productVariants.status,
             categoryStatus: categories.status,
           },
         })
         .from(cartItems)
-        .innerJoin(products, eq(cartItems.productId, products.id))
+        .innerJoin(productVariants, eq(cartItems.variantId, productVariants.id))
+        .innerJoin(products, eq(productVariants.productId, products.id))
         .innerJoin(categories, eq(products.categoryId, categories.id))
         .where(eq(cartItems.userId, userId))
         .orderBy(desc(cartItems.updatedAt)),
@@ -344,7 +390,13 @@ export const orderRepository: OrderRepository = {
         ...address,
         label: address.label ?? undefined,
       })),
-      items,
+      items: items.map(({ product, ...item }) => ({
+        ...item,
+        product: {
+          ...product,
+          variantAttributes: parseVariantAttributes(product.variantAttributesJson),
+        },
+      })),
     };
   },
 
@@ -404,16 +456,29 @@ export const orderRepository: OrderRepository = {
       }
 
       const items = await transaction
-        .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+        .select({ variantId: orderItems.variantId, quantity: orderItems.quantity, stock: productVariants.stock })
         .from(orderItems)
+        .innerJoin(productVariants, eq(orderItems.variantId, productVariants.id))
         .where(eq(orderItems.orderId, order.id))
-        .orderBy(asc(orderItems.productId))
+        .orderBy(asc(orderItems.variantId))
         .for("update");
       for (const item of items) {
         await transaction
-          .update(products)
-          .set({ stock: sql`${products.stock} + ${item.quantity}` })
-          .where(eq(products.id, item.productId));
+          .update(productVariants)
+          .set({ stock: sql`${productVariants.stock} + ${item.quantity}` })
+          .where(eq(productVariants.id, item.variantId));
+        await transaction.insert(inventoryTransactions).values({
+          variantId: item.variantId,
+          type: "CANCEL_RESTORE",
+          quantityDelta: item.quantity,
+          stockBefore: item.stock,
+          stockAfter: item.stock + item.quantity,
+          referenceType: "ORDER",
+          referenceId: input.orderNo,
+          operatorUserId: input.userId,
+          note: order.expiresAt <= input.now ? "订单超时恢复库存" : "订单取消恢复库存",
+          createdAt: input.now,
+        });
       }
 
       const expired = order.expiresAt <= input.now;
@@ -474,3 +539,15 @@ export const orderRepository: OrderRepository = {
     return closedCount;
   },
 };
+
+function parseVariantAttributes(value: string): Record<string, string> {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return Object.fromEntries(
+      Object.entries(parsed).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+    );
+  } catch {
+    return {};
+  }
+}

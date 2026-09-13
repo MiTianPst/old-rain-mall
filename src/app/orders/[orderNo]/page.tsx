@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ProductVisual } from "@/features/catalog/product-visual";
 import { CancelOrderButton } from "@/features/order/cancel-order-button";
-import { formatDiscountRate, formatOrderTime, orderStatusLabels } from "@/features/order/presentation";
+import { formatDiscountRate, formatOrderTime, formatVariantSnapshot, orderStatusLabels } from "@/features/order/presentation";
 import { getMembershipLabel } from "@/lib/membership";
 import { formatCny } from "@/lib/money";
 import { MockPaymentButton } from "@/features/payment/mock-payment-button";
@@ -32,7 +32,7 @@ export default async function OrderDetailPage(props: PageProps<"/orders/[orderNo
           <section className="rounded-3xl border border-stone-200 bg-white p-6"><h2 className="text-lg font-semibold">收货信息</h2><p className="mt-4 font-medium">{order.recipientName} · {order.recipientPhone}</p><p className="mt-2 text-sm leading-6 text-stone-500">{order.recipientAddress}</p></section>
           <section className="rounded-3xl border border-stone-200 bg-white p-6">
             <h2 className="text-lg font-semibold">商品快照</h2>
-            <div className="mt-5 space-y-4">{order.items.map((item) => <div key={item.productId} className="grid grid-cols-[5rem_1fr_auto] items-center gap-4 border-t border-stone-100 pt-4 first:border-0 first:pt-0"><ProductVisual productId={item.productId} name={item.productName} coverUrl={item.productCoverUrl} /><div><p className="font-medium">{item.productName}</p><p className="mt-1 text-sm text-stone-500">{formatCny(item.unitPriceCents)} × {item.quantity}</p></div><p className="font-medium">{formatCny(item.subtotalCents)}</p></div>)}</div>
+            <div className="mt-5 space-y-4">{order.items.map((item) => <div key={item.variantId} className="grid grid-cols-[5rem_1fr_auto] items-center gap-4 border-t border-stone-100 pt-4 first:border-0 first:pt-0"><ProductVisual productId={item.productId} name={item.productName} coverUrl={item.productCoverUrl} /><div><p className="font-medium">{item.productName}</p><p className="mt-1 text-xs text-stone-500">{formatVariantSnapshot(item.variantName, item.variantAttributesJson)}</p><p className="mt-1 text-sm text-stone-500">{formatCny(item.unitPriceCents)} × {item.quantity}</p></div><p className="font-medium">{formatCny(item.subtotalCents)}</p></div>)}</div>
           </section>
         </div>
         <aside className="h-fit rounded-3xl bg-white p-6 ring-1 ring-stone-200">

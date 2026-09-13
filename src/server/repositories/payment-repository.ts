@@ -5,10 +5,11 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   membershipLevelLogs,
+  inventoryTransactions,
   orderItems,
   orders,
   payments,
-  products,
+  productVariants,
   users,
 } from "@/db/schema";
 import { getMembershipLevel, type MembershipLevel } from "@/lib/membership";
@@ -93,16 +94,29 @@ export const paymentRepository: PaymentRepository = {
       }
       if (order.expiresAt <= input.now) {
         const items = await transaction
-          .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+          .select({ variantId: orderItems.variantId, quantity: orderItems.quantity, stock: productVariants.stock })
           .from(orderItems)
+          .innerJoin(productVariants, eq(orderItems.variantId, productVariants.id))
           .where(eq(orderItems.orderId, order.id))
-          .orderBy(asc(orderItems.productId))
+          .orderBy(asc(orderItems.variantId))
           .for("update");
         for (const item of items) {
           await transaction
-            .update(products)
-            .set({ stock: sql`${products.stock} + ${item.quantity}` })
-            .where(eq(products.id, item.productId));
+            .update(productVariants)
+            .set({ stock: sql`${productVariants.stock} + ${item.quantity}` })
+            .where(eq(productVariants.id, item.variantId));
+          await transaction.insert(inventoryTransactions).values({
+            variantId: item.variantId,
+            type: "CANCEL_RESTORE",
+            quantityDelta: item.quantity,
+            stockBefore: item.stock,
+            stockAfter: item.stock + item.quantity,
+            referenceType: "ORDER",
+            referenceId: input.orderNo,
+            operatorUserId: input.userId,
+            note: "订单超时恢复库存",
+            createdAt: input.now,
+          });
         }
         await transaction
           .update(orders)
@@ -171,16 +185,29 @@ export const paymentRepository: PaymentRepository = {
         }
         if (order.expiresAt <= input.now) {
           const items = await transaction
-            .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+            .select({ variantId: orderItems.variantId, quantity: orderItems.quantity, stock: productVariants.stock })
             .from(orderItems)
+            .innerJoin(productVariants, eq(orderItems.variantId, productVariants.id))
             .where(eq(orderItems.orderId, order.id))
-            .orderBy(asc(orderItems.productId))
+            .orderBy(asc(orderItems.variantId))
             .for("update");
           for (const item of items) {
             await transaction
-              .update(products)
-              .set({ stock: sql`${products.stock} + ${item.quantity}` })
-              .where(eq(products.id, item.productId));
+              .update(productVariants)
+              .set({ stock: sql`${productVariants.stock} + ${item.quantity}` })
+              .where(eq(productVariants.id, item.variantId));
+            await transaction.insert(inventoryTransactions).values({
+              variantId: item.variantId,
+              type: "CANCEL_RESTORE",
+              quantityDelta: item.quantity,
+              stockBefore: item.stock,
+              stockAfter: item.stock + item.quantity,
+              referenceType: "ORDER",
+              referenceId: input.orderNo,
+              operatorUserId: input.userId,
+              note: "订单超时恢复库存",
+              createdAt: input.now,
+            });
           }
           await transaction
             .update(orders)

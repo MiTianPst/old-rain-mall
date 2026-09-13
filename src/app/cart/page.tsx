@@ -58,6 +58,12 @@ export default async function CartPage() {
                   >
                     {item.product.name}
                   </Link>
+                  <p className="mt-1 text-xs text-stone-500">
+                    {item.product.variantName || "默认规格"}
+                    {Object.values(item.product.variantAttributes).length > 0
+                      ? ` · ${Object.values(item.product.variantAttributes).join(" / ")}`
+                      : ""}
+                  </p>
                   <p className="mt-2 text-sm text-stone-500">
                     {formatCny(item.product.priceCents)} × {item.quantity}
                   </p>

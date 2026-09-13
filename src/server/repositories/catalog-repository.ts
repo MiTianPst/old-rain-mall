@@ -1,10 +1,10 @@
 import "server-only";
 
-import { and, count, desc, eq, like, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, like, or } from "drizzle-orm";
 
 import type { CatalogQuery } from "@/features/catalog/query";
 import { db } from "@/db";
-import { categories, products } from "@/db/schema";
+import { categories, products, productVariants } from "@/db/schema";
 import type {
   CatalogRepository,
   ProductRecord,
@@ -42,6 +42,21 @@ const productSelection = {
     slug: categories.slug,
   },
 };
+
+export async function findDefaultActiveVariant(productId: number) {
+  const [variant] = await db
+    .select({
+      id: productVariants.id,
+      name: productVariants.name,
+      priceCents: productVariants.priceCents,
+      stock: productVariants.stock,
+    })
+    .from(productVariants)
+    .where(and(eq(productVariants.productId, productId), eq(productVariants.status, "ACTIVE")))
+    .orderBy(asc(productVariants.id))
+    .limit(1);
+  return variant ?? null;
+}
 
 export const catalogRepository: CatalogRepository = {
   async listProducts(query, pageSize) {

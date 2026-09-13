@@ -27,6 +27,7 @@ export default async function ProductDetailPage({
   const { slug } = await params;
   const product = await catalogService.getProductBySlug(slug);
   if (!product) notFound();
+  const defaultVariant = await catalogService.getDefaultActiveVariant(product.id);
 
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10 lg:px-8 lg:py-16">
@@ -62,23 +63,25 @@ export default async function ProductDetailPage({
             </p>
           ) : null}
           <p className="mt-8 text-3xl font-semibold text-amber-800">
-            {formatCny(product.priceCents)}
+            {defaultVariant ? formatCny(defaultVariant.priceCents) : "暂无可售规格"}
           </p>
 
           <div className="mt-8 flex items-center justify-between border-y border-stone-200 py-5 text-sm">
             <span className="text-stone-500">库存状态</span>
             <span
-              className={product.stock > 0 ? "text-emerald-700" : "text-rose-700"}
+              className={defaultVariant && defaultVariant.stock > 0 ? "text-emerald-700" : "text-rose-700"}
             >
-              {product.stock > 0 ? `现货 ${product.stock} 件` : "暂时售罄"}
+              {defaultVariant && defaultVariant.stock > 0 ? `现货 ${defaultVariant.stock} 件` : "暂时售罄"}
             </span>
           </div>
 
-          <AddToCartButton
-            productId={product.id}
-            returnTo={`/products/${product.slug}`}
-            disabled={product.stock <= 0}
-          />
+          {defaultVariant ? (
+            <AddToCartButton
+              variantId={defaultVariant.id}
+              returnTo={`/products/${product.slug}`}
+              disabled={defaultVariant.stock <= 0}
+            />
+          ) : null}
 
           <section className="mt-10">
             <h2 className="text-lg font-semibold text-stone-900">商品详情</h2>

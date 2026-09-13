@@ -14,12 +14,16 @@ export type CartItemRecord = {
   quantity: number;
   product: {
     id: number;
+    variantId: number;
     slug: string;
     name: string;
+    variantName: string;
+    variantAttributes: Record<string, string>;
     priceCents: number;
     stock: number;
     coverUrl: string | null;
     status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+    variantStatus: "ACTIVE" | "ARCHIVED";
     categoryStatus: "ACTIVE" | "HIDDEN";
   };
 };
@@ -27,7 +31,7 @@ export type CartItemRecord = {
 export interface CartRepository {
   addItem(input: {
     userId: string;
-    productId: number;
+    variantId: number;
     quantity: number;
   }): Promise<CartWriteResult>;
   updateItem(input: {
@@ -43,7 +47,7 @@ export function createCartService(repository: CartRepository) {
   return {
     async addItem(input: {
       userId: string | null;
-      productId: number;
+      variantId: number;
       quantity: number;
     }) {
       if (!input.userId) {
@@ -51,6 +55,14 @@ export function createCartService(repository: CartRepository) {
           ok: false as const,
           code: "UNAUTHORIZED" as const,
           message: "请先登录后再加入购物车",
+        };
+      }
+
+      if (!Number.isSafeInteger(input.variantId) || input.variantId <= 0) {
+        return {
+          ok: false as const,
+          code: "INVALID_INPUT" as const,
+          message: "商品规格参数不正确",
         };
       }
 
@@ -64,7 +76,7 @@ export function createCartService(repository: CartRepository) {
 
       const result = await repository.addItem({
         userId: input.userId,
-        productId: input.productId,
+        variantId: input.variantId,
         quantity: input.quantity,
       });
 
@@ -186,6 +198,7 @@ export function createCartService(repository: CartRepository) {
         lineTotalCents: item.product.priceCents * item.quantity,
         available:
           item.product.status === "ACTIVE" &&
+          item.product.variantStatus === "ACTIVE" &&
           item.product.categoryStatus === "ACTIVE" &&
           item.product.stock >= item.quantity,
       }));

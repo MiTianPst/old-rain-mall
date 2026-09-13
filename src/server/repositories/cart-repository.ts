@@ -3,19 +3,21 @@ import "server-only";
 import { and, desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { cartItems, categories, products } from "@/db/schema";
+import { cartItems, categories, products, productVariants } from "@/db/schema";
 import type { CartRepository } from "@/server/services/cart-service";
 
 export const cartRepository: CartRepository = {
   addItem(input) {
     return db.transaction(async (transaction) => {
-      const [product] = await transaction
-        .select({ id: products.id, stock: products.stock })
-        .from(products)
+      const [variant] = await transaction
+        .select({ id: productVariants.id, productId: products.id, stock: productVariants.stock })
+        .from(productVariants)
+        .innerJoin(products, eq(productVariants.productId, products.id))
         .innerJoin(categories, eq(products.categoryId, categories.id))
         .where(
           and(
-            eq(products.id, input.productId),
+            eq(productVariants.id, input.variantId),
+            eq(productVariants.status, "ACTIVE"),
             eq(products.status, "ACTIVE"),
             eq(categories.status, "ACTIVE"),
           ),
@@ -23,7 +25,7 @@ export const cartRepository: CartRepository = {
         .limit(1)
         .for("update");
 
-      if (!product) return { status: "PRODUCT_UNAVAILABLE" as const };
+      if (!variant) return { status: "PRODUCT_UNAVAILABLE" as const };
 
       const [existingItem] = await transaction
         .select({ id: cartItems.id, quantity: cartItems.quantity })
@@ -31,15 +33,15 @@ export const cartRepository: CartRepository = {
         .where(
           and(
             eq(cartItems.userId, input.userId),
-            eq(cartItems.productId, input.productId),
+            eq(cartItems.variantId, input.variantId),
           ),
         )
         .limit(1)
         .for("update");
 
       const nextQuantity = (existingItem?.quantity ?? 0) + input.quantity;
-      if (nextQuantity > product.stock) {
-        return { status: "STOCK_EXCEEDED" as const, stock: product.stock };
+      if (nextQuantity > variant.stock) {
+        return { status: "STOCK_EXCEEDED" as const, stock: variant.stock };
       }
 
       if (existingItem) {
@@ -50,7 +52,8 @@ export const cartRepository: CartRepository = {
       } else {
         await transaction.insert(cartItems).values({
           userId: input.userId,
-          productId: input.productId,
+          productId: variant.productId,
+          variantId: variant.id,
           quantity: nextQuantity,
         });
       }
@@ -64,12 +67,14 @@ export const cartRepository: CartRepository = {
       const [item] = await transaction
         .select({
           id: cartItems.id,
-          stock: products.stock,
+          stock: productVariants.stock,
+          variantStatus: productVariants.status,
           productStatus: products.status,
           categoryStatus: categories.status,
         })
         .from(cartItems)
-        .innerJoin(products, eq(cartItems.productId, products.id))
+        .innerJoin(productVariants, eq(cartItems.variantId, productVariants.id))
+        .innerJoin(products, eq(productVariants.productId, products.id))
         .innerJoin(categories, eq(products.categoryId, categories.id))
         .where(
           and(
@@ -83,6 +88,7 @@ export const cartRepository: CartRepository = {
       if (!item) return { status: "ITEM_NOT_FOUND" as const };
 
       if (
+        item.variantStatus !== "ACTIVE" ||
         item.productStatus !== "ACTIVE" ||
         item.categoryStatus !== "ACTIVE"
       ) {
@@ -120,26 +126,50 @@ export const cartRepository: CartRepository = {
     return result[0].affectedRows > 0;
   },
 
-  listItems(userId) {
-    return db
+  async listItems(userId) {
+    const rows = await db
       .select({
         id: cartItems.id,
         quantity: cartItems.quantity,
         product: {
           id: products.id,
+          variantId: productVariants.id,
           slug: products.slug,
           name: products.name,
-          priceCents: products.priceCents,
-          stock: products.stock,
+          variantName: productVariants.name,
+          variantAttributesJson: productVariants.attributesJson,
+          priceCents: productVariants.priceCents,
+          stock: productVariants.stock,
           coverUrl: products.coverUrl,
           status: products.status,
+          variantStatus: productVariants.status,
           categoryStatus: categories.status,
         },
       })
       .from(cartItems)
-      .innerJoin(products, eq(cartItems.productId, products.id))
+      .innerJoin(productVariants, eq(cartItems.variantId, productVariants.id))
+      .innerJoin(products, eq(productVariants.productId, products.id))
       .innerJoin(categories, eq(products.categoryId, categories.id))
       .where(eq(cartItems.userId, userId))
       .orderBy(desc(cartItems.updatedAt));
+    return rows.map(({ product, ...row }) => ({
+      ...row,
+      product: {
+        ...product,
+        variantAttributes: parseVariantAttributes(product.variantAttributesJson),
+      },
+    }));
   },
 };
+
+function parseVariantAttributes(value: string): Record<string, string> {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return Object.fromEntries(
+      Object.entries(parsed).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+    );
+  } catch {
+    return {};
+  }
+}

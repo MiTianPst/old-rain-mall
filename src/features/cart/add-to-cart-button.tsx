@@ -14,13 +14,13 @@ const initialAddToCartState: AddToCartState = {
 };
 
 type AddToCartButtonProps = {
-  productId: number;
+  variantId: number;
   returnTo: string;
   disabled: boolean;
 };
 
 export function AddToCartButton({
-  productId,
+  variantId,
   returnTo,
   disabled,
 }: AddToCartButtonProps) {
@@ -38,7 +38,7 @@ export function AddToCartButton({
 
   return (
     <form action={formAction} className="mt-8">
-      <input type="hidden" name="productId" value={productId} />
+      <input type="hidden" name="variantId" value={variantId} />
       <input type="hidden" name="quantity" value="1" />
       <input type="hidden" name="returnTo" value={returnTo} />
       <button
