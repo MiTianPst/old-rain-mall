@@ -17,12 +17,13 @@
 
 ## 当前状态
 
-- Next.js 基础工程已创建，首页可正常构建。
-- Drizzle ORM 与 MySQL 数据层已接入。
-- 已生成首个数据库迁移，共包含 12 张表。
-- 已提供分类和商品种子数据。
-- 登录、商城页面、购物车、订单服务及后台页面尚未实现。
-- 当前开发环境没有已配置好的 `DATABASE_URL`，数据库迁移尚未实际执行。
+- Next.js 基础工程已创建，首页与商品详情页可正常构建。
+- Drizzle ORM 与 MySQL 数据层已接入，首个数据库迁移已实际执行，共包含 12 张表。
+- 已提供分类和商品种子数据，首页支持真实商品搜索、分类筛选和每页 9 条分页。
+- 已提供商品列表、商品详情和分类公开 API。
+- 已接入 Better Auth 邮箱密码认证与数据库 Session。
+- 登录用户可以把商品真实写入购物车，并在购物车页查看已选商品。
+- 下单、订单服务、模拟支付及后台页面尚未实现。
 
 ## 技术栈
 
@@ -214,6 +215,9 @@ PENDING_PAYMENT 超时后可进入 CLOSED
 /admin/categories         分类管理
 /admin/orders             订单管理
 /api/auth/[...all]        认证接口
+/api/products             公开商品列表接口
+/api/products/[id]        公开商品详情接口
+/api/categories           公开分类接口
 /api/payments/mock        模拟支付接口
 /api/jobs/expire-orders   关闭超时订单
 ```
