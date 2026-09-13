@@ -17,6 +17,14 @@ export type OrderRecord = {
   recipientName: string;
   recipientPhone: string;
   recipientAddress: string;
+  items: Array<{
+    productId: number;
+    productName: string;
+    productCoverUrl: string | null;
+    unitPriceCents: number;
+    quantity: number;
+    subtotalCents: number;
+  }>;
 };
 
 export type CheckoutRecord = {
