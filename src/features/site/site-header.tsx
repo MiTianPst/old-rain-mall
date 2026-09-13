@@ -23,6 +23,9 @@ export function SiteHeader() {
           <Link href="/addresses" className="transition hover:text-amber-800">
             收货地址
           </Link>
+          <Link href="/orders" className="transition hover:text-amber-800">
+            订单
+          </Link>
           <Suspense
             fallback={
               <span className="rounded-full border border-stone-200 px-4 py-2 text-stone-400">

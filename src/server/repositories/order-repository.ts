@@ -39,12 +39,19 @@ const orderSelection = {
   userId: orders.userId,
   status: orders.status,
   paymentStatus: orders.paymentStatus,
+  membershipLevelSnapshot: orders.membershipLevelSnapshot,
+  originalAmountCents: orders.originalAmountCents,
+  discountRateBps: orders.discountRateBps,
+  memberDiscountCents: orders.memberDiscountCents,
+  shippingFeeCents: orders.shippingFeeCents,
   totalCents: orders.totalCents,
   createdAt: orders.createdAt,
   expiresAt: orders.expiresAt,
   recipientName: orders.recipientName,
   recipientPhone: orders.recipientPhone,
   recipientAddress: orders.recipientAddress,
+  paidAt: orders.paidAt,
+  cancelledAt: orders.cancelledAt,
 };
 
 async function loadOrderItems(orderIds: number[]) {
@@ -360,7 +367,11 @@ export const orderRepository: OrderRepository = {
       .where(eq(orders.userId, userId))
       .orderBy(desc(orders.createdAt), desc(orders.id));
     const items = await loadOrderItems(rows.map((row) => row.id));
-    return rows.map((row) => ({ ...row, items: items.get(row.id) ?? [] }));
+    return rows.map((row) => ({
+      ...row,
+      membershipLevelSnapshot: row.membershipLevelSnapshot as MembershipLevel,
+      items: items.get(row.id) ?? [],
+    }));
   },
 
   async getByOrderNo(input) {
@@ -371,7 +382,11 @@ export const orderRepository: OrderRepository = {
       .limit(1);
     if (!row) return null;
     const items = await loadOrderItems([row.id]);
-    return { ...row, items: items.get(row.id) ?? [] };
+    return {
+      ...row,
+      membershipLevelSnapshot: row.membershipLevelSnapshot as MembershipLevel,
+      items: items.get(row.id) ?? [],
+    };
   },
 
   async cancel(input) {

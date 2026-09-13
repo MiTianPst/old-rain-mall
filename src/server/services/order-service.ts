@@ -11,12 +11,19 @@ export type OrderRecord = {
   userId: string;
   status: "PENDING_PAYMENT" | "PAID" | "SHIPPED" | "COMPLETED" | "CANCELLED" | "CLOSED";
   paymentStatus: "PENDING" | "SUCCESS" | "FAILED";
+  membershipLevelSnapshot: MembershipLevel;
+  originalAmountCents: number;
+  discountRateBps: number;
+  memberDiscountCents: number;
+  shippingFeeCents: number;
   totalCents: number;
   createdAt: Date;
   expiresAt: Date;
   recipientName: string;
   recipientPhone: string;
   recipientAddress: string;
+  paidAt: Date | null;
+  cancelledAt: Date | null;
   items: Array<{
     productId: number;
     productName: string;
