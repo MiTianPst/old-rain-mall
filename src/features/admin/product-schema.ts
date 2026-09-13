@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const optionalText = (max: number, message: string) =>
   z.preprocess(
-    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    (value) => (value === null || (typeof value === "string" && value.trim() === "") ? undefined : value),
     z.string().trim().max(max, message).optional(),
   );
 
@@ -19,11 +19,11 @@ const adminProductFormSchema = z.object({
   name: z.string().trim().min(1, "商品名称不能为空").max(200, "商品名称不能超过 200 个字符"),
   slug: z.string().trim().min(1, "商品标识不能为空").max(220, "商品标识不能超过 220 个字符").regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "商品标识只能包含小写字母、数字和连字符"),
   summary: optionalText(500, "商品摘要不能超过 500 个字符"),
-  description: z.preprocess((value) => (typeof value === "string" && value.trim() === "" ? undefined : value), z.string().trim().optional()),
+  description: z.preprocess((value) => (value === null || (typeof value === "string" && value.trim() === "") ? undefined : value), z.string().trim().optional()),
   priceYuan: z.string().trim().refine((value) => yuanToCents(value) !== null, "请输入最多两位小数的有效价格"),
   stock: z.coerce.number().int("库存必须是整数").min(0, "库存不能小于 0"),
   status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"], "请选择有效商品状态"),
-  coverUrl: z.preprocess((value) => (typeof value === "string" && value.trim() === "" ? undefined : value), z.url("封面地址格式不正确").max(1000, "封面地址不能超过 1000 个字符").optional()),
+  coverUrl: z.preprocess((value) => (value === null || (typeof value === "string" && value.trim() === "") ? undefined : value), z.url("封面地址格式不正确").max(1000, "封面地址不能超过 1000 个字符").optional()),
 });
 
 export type AdminProductInput = {
