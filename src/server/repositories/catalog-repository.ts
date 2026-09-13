@@ -1,13 +1,20 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, like, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, exists, like, or } from "drizzle-orm";
 
 import type { CatalogQuery } from "@/features/catalog/query";
 import { db } from "@/db";
-import { categories, products, productVariants } from "@/db/schema";
+import {
+  categories,
+  productImages,
+  products,
+  productVariants,
+} from "@/db/schema";
 import type {
   CatalogRepository,
+  ProductImageDto,
   ProductRecord,
+  ProductVariantDto,
 } from "@/server/services/catalog-service";
 
 function publicProductWhere(query?: Pick<CatalogQuery, "search" | "category">) {
@@ -16,6 +23,17 @@ function publicProductWhere(query?: Pick<CatalogQuery, "search" | "category">) {
   return and(
     eq(products.status, "ACTIVE"),
     eq(categories.status, "ACTIVE"),
+    exists(
+      db
+        .select({ id: productVariants.id })
+        .from(productVariants)
+        .where(
+          and(
+            eq(productVariants.productId, products.id),
+            eq(productVariants.status, "ACTIVE"),
+          ),
+        ),
+    ),
     query?.category ? eq(categories.slug, query.category) : undefined,
     searchPattern
       ? or(
@@ -60,14 +78,16 @@ export async function findDefaultActiveVariant(productId: number) {
 
 export const catalogRepository: CatalogRepository = {
   async listProducts(query, pageSize) {
-    return db
+    const rows = await db
       .select(productSelection)
       .from(products)
       .innerJoin(categories, eq(products.categoryId, categories.id))
       .where(publicProductWhere(query))
       .orderBy(desc(products.createdAt), desc(products.id))
       .limit(pageSize)
-      .offset((query.page - 1) * pageSize) as Promise<ProductRecord[]>;
+      .offset((query.page - 1) * pageSize);
+
+    return Promise.all(rows.map((row) => hydrateProduct(row, false)));
   },
 
   async countProducts(query) {
@@ -88,7 +108,7 @@ export const catalogRepository: CatalogRepository = {
       .where(and(publicProductWhere(), eq(products.id, id)))
       .limit(1);
 
-    return row ?? null;
+    return row ? hydrateProduct(row, true) : null;
   },
 
   async findProductBySlug(slug) {
@@ -99,7 +119,7 @@ export const catalogRepository: CatalogRepository = {
       .where(and(publicProductWhere(), eq(products.slug, slug)))
       .limit(1);
 
-    return row ?? null;
+    return row ? hydrateProduct(row, true) : null;
   },
 
   async listCategories() {
@@ -130,3 +150,118 @@ export const catalogRepository: CatalogRepository = {
       .orderBy(categories.sortOrder, categories.id);
   },
 };
+
+async function hydrateProduct(
+  row: ProductBaseRow,
+  includeArchivedVariants: boolean,
+): Promise<ProductRecord> {
+  const [variants, images] = await Promise.all([
+    listProductVariants(row.id, includeArchivedVariants),
+    listProductImages(row.id),
+  ]);
+  const defaultVariant = variants.find((variant) => variant.status === "ACTIVE");
+  const primaryImage = images.find((image) => image.isPrimary) ?? images[0];
+
+  return {
+    ...row,
+    priceCents: defaultVariant?.priceCents ?? row.priceCents,
+    stock: defaultVariant?.stock ?? row.stock,
+    coverUrl: primaryImage?.url ?? row.coverUrl,
+    variants,
+    images,
+  };
+}
+
+type ProductBaseRow = {
+  id: number;
+  slug: string;
+  name: string;
+  summary: string | null;
+  description: string | null;
+  priceCents: number;
+  stock: number;
+  coverUrl: string | null;
+  category: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+};
+
+async function listProductVariants(
+  productId: number,
+  includeArchived: boolean,
+): Promise<ProductVariantDto[]> {
+  const rows = await db
+    .select({
+      id: productVariants.id,
+      skuCode: productVariants.skuCode,
+      name: productVariants.name,
+      attributesJson: productVariants.attributesJson,
+      priceCents: productVariants.priceCents,
+      stock: productVariants.stock,
+      status: productVariants.status,
+    })
+    .from(productVariants)
+    .where(
+      and(
+        eq(productVariants.productId, productId),
+        includeArchived
+          ? undefined
+          : eq(productVariants.status, "ACTIVE"),
+      ),
+    )
+    .orderBy(asc(productVariants.id));
+
+  return rows.map((row) => ({
+    id: row.id,
+    skuCode: row.skuCode,
+    name: row.name,
+    attributes: parseVariantAttributes(row.attributesJson, row.id),
+    priceCents: row.priceCents,
+    stock: row.stock,
+    status: row.status,
+  }));
+}
+
+async function listProductImages(productId: number): Promise<ProductImageDto[]> {
+  return db
+    .select({
+      id: productImages.id,
+      url: productImages.url,
+      altText: productImages.altText,
+      isPrimary: productImages.isPrimary,
+      sortOrder: productImages.sortOrder,
+    })
+    .from(productImages)
+    .where(eq(productImages.productId, productId))
+    .orderBy(
+      desc(productImages.isPrimary),
+      asc(productImages.sortOrder),
+      asc(productImages.id),
+    );
+}
+
+function parseVariantAttributes(
+  attributesJson: string,
+  variantId: number,
+): Record<string, string> {
+  try {
+    const parsed: unknown = JSON.parse(attributesJson);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    );
+  } catch (error) {
+    console.error("[catalog] SKU 属性解析失败", {
+      variantId,
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
+    return {};
+  }
+}
