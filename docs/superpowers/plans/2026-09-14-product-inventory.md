@@ -104,9 +104,9 @@ Expected: FAIL，因为 productVariants 和 inventoryTransactions 尚未导出�
 
 在 productImages 增加 isPrimary。commerce.ts 增加 cartItems.variantId、orderItems.variantId、variantName、variantAttributesJson，并新增 inventoryTransactions。系统产生的流水允许 operatorUserId 为空。
 
-- [ ] **Step 4: 生成并执行迁移**
+- [ ] **Step 4: 生成、补充并执行迁移**
 
-先运行 npm.cmd run db:generate，审查生成 SQL，确保顺序为：创建 SKU/流水表；为现有商品插入默认 SKU；给购物车和订单项回填默认 SKU；再创建 variant_id 索引和非空约束。运行 npm.cmd run db:migrate。
+先运行 npm.cmd run db:generate，审查生成 SQL 的结构变更；在该迁移尚未执行前，追加一段可审查、可重复执行的数据回填 SQL，顺序为：创建 SKU/流水表；为没有默认 SKU 的现有商品插入默认 SKU；给购物车和订单项回填默认 SKU；再创建 variant_id 索引和非空约束。回填 SQL 必须使用 INSERT ... SELECT 与 NOT EXISTS，不能依赖当前自增 ID。确认 SQL 后运行 npm.cmd run db:migrate；不得修改已经执行过的迁移文件。
 
 回填规则：每个商品创建 skuCode 为 <product.slug>-default、名称为“默认规格”、规格 JSON 为 {}、价格/库存复制现有商品列；现有购物车和订单项通过 product_id 关联默认 SKU。迁移不得删除历史订单列。
 
@@ -381,4 +381,3 @@ git commit -m "feat: 增加库存预警与运营展示"
 - 图片上传不允许 SVG、路径逃逸或超过 5 MB 的文件，上传目录被 Git 忽略。
 - npm test、npm run test:db、npm run lint、npm run typecheck 和 npm run build 全部通过。
 - 本计划完成后，再为第二期物流与售后、第三期用户安全与运营分别建立独立计划，避免跨期迁移和状态规则混杂。
-
