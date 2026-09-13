@@ -78,7 +78,7 @@ export const addressRepository: AddressRepository = {
         .limit(1)
         .for("update");
 
-      if (!user) return { status: "LIMIT_REACHED" as const };
+      if (!user) return { status: "USER_NOT_FOUND" as const };
 
       const existingAddresses = await transaction
         .select({ id: userAddresses.id })

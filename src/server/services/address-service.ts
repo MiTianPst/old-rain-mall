@@ -8,7 +8,8 @@ export type AddressRecord = AddressInput & {
 
 export type AddressCreateResult =
   | { status: "CREATED" }
-  | { status: "LIMIT_REACHED" };
+  | { status: "LIMIT_REACHED" }
+  | { status: "USER_NOT_FOUND" };
 
 export type AddressUpdateResult =
   | { status: "UPDATED" }
@@ -55,6 +56,14 @@ function unauthorizedResult() {
   };
 }
 
+function expiredSessionResult() {
+  return {
+    ok: false as const,
+    code: "UNAUTHORIZED" as const,
+    message: "登录状态已失效，请重新登录",
+  };
+}
+
 function notFoundResult() {
   return {
     ok: false as const,
@@ -97,6 +106,7 @@ export function createAddressService(repository: AddressRepository) {
           message: "最多保存 20 个地址",
         };
       }
+      if (result.status === "USER_NOT_FOUND") return expiredSessionResult();
 
       return { ok: true as const, message: "收货地址已保存" };
     },
