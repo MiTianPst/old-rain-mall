@@ -310,3 +310,97 @@ export const membershipLevelLogs = mysqlTable(
     ),
   ],
 );
+
+export const reviewStatuses = ["PENDING", "APPROVED", "REJECTED"] as const;
+
+export const favorites = mysqlTable(
+  "favorites",
+  {
+    id: int("id", { unsigned: true }).autoincrement().primaryKey(),
+    userId: varchar("user_id", { length: 36 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    productId: int("product_id", { unsigned: true })
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("favorites_user_product_unique").on(
+      table.userId,
+      table.productId,
+    ),
+    index("favorites_user_created_idx").on(table.userId, table.createdAt),
+  ],
+);
+
+export const productViews = mysqlTable(
+  "product_views",
+  {
+    id: int("id", { unsigned: true }).autoincrement().primaryKey(),
+    userId: varchar("user_id", { length: 36 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    productId: int("product_id", { unsigned: true })
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    viewCount: int("view_count", { unsigned: true }).notNull().default(1),
+    lastViewedAt: timestamp("last_viewed_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("product_views_user_product_unique").on(
+      table.userId,
+      table.productId,
+    ),
+    index("product_views_user_last_viewed_idx").on(
+      table.userId,
+      table.lastViewedAt,
+    ),
+  ],
+);
+
+export const productReviews = mysqlTable(
+  "product_reviews",
+  {
+    id: int("id", { unsigned: true }).autoincrement().primaryKey(),
+    userId: varchar("user_id", { length: 36 })
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    productId: int("product_id", { unsigned: true })
+      .notNull()
+      .references(() => products.id, { onDelete: "restrict" }),
+    orderItemId: int("order_item_id", { unsigned: true })
+      .notNull()
+      .references(() => orderItems.id, { onDelete: "restrict" }),
+    rating: tinyint("rating", { unsigned: true }).notNull(),
+    content: varchar("content", { length: 1000 }).notNull(),
+    status: mysqlEnum("status", reviewStatuses)
+      .notNull()
+      .default("PENDING"),
+    reviewNote: varchar("review_note", { length: 500 }),
+    reviewedBy: varchar("reviewed_by", { length: 36 }).references(
+      () => users.id,
+      { onDelete: "restrict" },
+    ),
+    reviewedAt: timestamp("reviewed_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (table) => [
+    uniqueIndex("product_reviews_user_product_unique").on(
+      table.userId,
+      table.productId,
+    ),
+    index("product_reviews_product_status_created_idx").on(
+      table.productId,
+      table.status,
+      table.createdAt,
+    ),
+    index("product_reviews_status_created_idx").on(table.status, table.createdAt),
+    check(
+      "product_reviews_rating_check",
+      sql`${table.rating} between 1 and 5`,
+    ),
+  ],
+);

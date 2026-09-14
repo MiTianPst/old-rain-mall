@@ -64,6 +64,13 @@
       "when": 1789392218749,
       "tag": "0008_white_mesmero",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1789397954013,
+      "tag": "0009_sloppy_bastion",
+      "breakpoints": true
     }
   ]
 }
