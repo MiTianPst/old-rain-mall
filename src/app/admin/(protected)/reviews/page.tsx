@@ -10,7 +10,10 @@ import { reviewService } from "@/server/review";
 export const metadata: Metadata = { title: "评价审核" };
 
 const querySchema = z.object({
-  status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
+  status: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
+  ),
   page: z.coerce.number().int().positive().catch(1),
 });
 

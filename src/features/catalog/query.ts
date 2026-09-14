@@ -31,7 +31,8 @@ const optionalPriceSchema = z.preprocess(
     z.coerce
       .number({ error: "价格必须是非负整数" })
       .int("价格必须是非负整数")
-      .nonnegative("价格必须是非负整数"),
+      .nonnegative("价格必须是非负整数")
+      .max(100_000_000, "价格不能超过 100000000 元"),
   ]),
 );
 

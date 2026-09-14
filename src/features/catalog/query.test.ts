@@ -105,4 +105,8 @@ test("拒绝倒置价格区间和未知排序", () => {
     () => parseCatalogQuery({ sort: "random" }),
     /排序方式不正确/,
   );
+  assert.throws(
+    () => parseCatalogQuery({ minPrice: "100000001" }),
+    /价格不能超过 100000000 元/,
+  );
 });
