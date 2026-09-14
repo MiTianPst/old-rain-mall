@@ -223,12 +223,54 @@ async function seed() {
     },
   ] as const;
 
+  const merchandisingSeeds = {
+    "xinghe-x1-smartphone": {
+      compareAtPriceCents: 329900,
+      isFeatured: true,
+      featuredSort: 10,
+      promotionLabel: "限时优惠",
+    },
+    "yunlan-note-smartphone": {
+      compareAtPriceCents: 219900,
+      isFeatured: true,
+      featuredSort: 20,
+      promotionLabel: "人气推荐",
+    },
+    "chenxi-tablet-air": {
+      compareAtPriceCents: 279900,
+      isFeatured: true,
+      featuredSort: 30,
+      promotionLabel: "新品首发",
+    },
+    "jingye-noise-canceling-headphones-pro": {
+      compareAtPriceCents: 109900,
+      isFeatured: true,
+      featuredSort: 40,
+      promotionLabel: "精选好价",
+    },
+    "rain-smartwatch-2": {
+      compareAtPriceCents: 79900,
+      isFeatured: true,
+      featuredSort: 50,
+      promotionLabel: "热门推荐",
+    },
+    "qingyu-14-laptop": {
+      compareAtPriceCents: 649900,
+      isFeatured: true,
+      featuredSort: 60,
+      promotionLabel: "新品首发",
+    },
+  } as const;
+
   for (const product of productSeeds) {
     const categoryId = categoryBySlug.get(product.categorySlug);
 
     if (!categoryId) {
       throw new Error(`缺少种子分类：${product.categorySlug}`);
     }
+
+    const merchandising =
+      merchandisingSeeds[product.slug as keyof typeof merchandisingSeeds];
 
     await db
       .insert(products)
@@ -241,6 +283,10 @@ async function seed() {
         priceCents: product.priceCents,
         stock: product.stock,
         coverUrl: product.coverUrl,
+        compareAtPriceCents: merchandising?.compareAtPriceCents ?? null,
+        isFeatured: merchandising?.isFeatured ?? false,
+        featuredSort: merchandising?.featuredSort ?? 0,
+        promotionLabel: merchandising?.promotionLabel ?? null,
         status: "ACTIVE",
       })
       .onDuplicateKeyUpdate({
@@ -252,6 +298,10 @@ async function seed() {
           priceCents: product.priceCents,
           stock: product.stock,
           coverUrl: product.coverUrl,
+          compareAtPriceCents: merchandising?.compareAtPriceCents ?? null,
+          isFeatured: merchandising?.isFeatured ?? false,
+          featuredSort: merchandising?.featuredSort ?? 0,
+          promotionLabel: merchandising?.promotionLabel ?? null,
           status: "ACTIVE",
         },
       });
