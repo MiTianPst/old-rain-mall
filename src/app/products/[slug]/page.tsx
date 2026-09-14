@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { ProductVisual } from "@/features/catalog/product-visual";
 import { VariantSelection } from "@/features/catalog/variant-selection";
 import { FavoriteButton } from "@/features/engagement/favorite-button";
+import { ProductViewTracker } from "@/features/engagement/product-view-tracker";
 import { getCurrentSession } from "@/server/auth/session";
 import { catalogService } from "@/server/catalog";
 import { engagementService } from "@/server/engagement";
@@ -45,6 +46,7 @@ export default async function ProductDetailPage({
 
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10 lg:px-8 lg:py-16">
+      <ProductViewTracker productId={product.id} enabled={Boolean(session)} />
       <Link
         href="/"
         className="text-sm text-stone-500 transition hover:text-amber-800"

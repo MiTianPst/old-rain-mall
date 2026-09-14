@@ -15,6 +15,7 @@ const accountLinks = [
   { href: "/orders", title: "我的订单", description: "查看订单状态、物流与售后", icon: "单" },
   { href: "/cart", title: "购物车", description: "继续结算已经挑选的商品", icon: "购" },
   { href: "/account/favorites", title: "我的收藏", description: "收藏心动商品，随时回来查看", icon: "藏" },
+  { href: "/account/history", title: "最近浏览", description: "快速找回最近看过的商品", icon: "览" },
   { href: "/addresses", title: "地址簿", description: "管理收货人与常用地址", icon: "址" },
   { href: "/account/password", title: "账户安全", description: "修改登录密码与保护账户", icon: "安" },
 ] as const;
