@@ -8,9 +8,10 @@ type ProductShowcaseProps = {
   description: string;
   products: HomepageProductDto[];
   isAuthenticated: boolean;
+  favoriteProductIds?: ReadonlySet<number>;
 };
 
-export function ProductShowcase({ id, eyebrow, title, description, products, isAuthenticated }: ProductShowcaseProps) {
+export function ProductShowcase({ id, eyebrow, title, description, products, isAuthenticated, favoriteProductIds }: ProductShowcaseProps) {
   if (products.length === 0) return null;
 
   return (
@@ -25,7 +26,7 @@ export function ProductShowcase({ id, eyebrow, title, description, products, isA
       </div>
       <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {products.slice(0, 4).map((product) => (
-          <ProductCard key={product.id} product={product} memberPriceCents={product.memberPriceCents} isAuthenticated={isAuthenticated} compact />
+          <ProductCard key={product.id} product={product} memberPriceCents={product.memberPriceCents} isAuthenticated={isAuthenticated} isFavorited={favoriteProductIds?.has(product.id)} compact />
         ))}
       </div>
     </section>

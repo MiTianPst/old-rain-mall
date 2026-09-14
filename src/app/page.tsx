@@ -17,6 +17,7 @@ import {
 } from "@/lib/membership";
 import { getCurrentSession } from "@/server/auth/session";
 import { catalogService } from "@/server/catalog";
+import { engagementService } from "@/server/engagement";
 import { homepageService } from "@/server/homepage";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
@@ -38,20 +39,23 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const membershipLevel = (session?.user.membershipLevel ?? 0) as MembershipLevel;
   const lifetimePaidCents = session?.user.lifetimePaidCents ?? 0;
   const homepageData = await homepageService.getHomepageData(membershipLevel);
+  const homepageProducts = [
+    ...homepageData.featuredProducts,
+    ...homepageData.newProducts,
+    ...homepageData.bestSellingProducts,
+  ];
+  const favoriteProductIds = new Set(
+    await engagementService.listFavoriteProductIds(
+      session?.user.id ?? null,
+      [...new Set([...homepageProducts.map((item) => item.id), ...products.data.map((item) => item.id)])],
+    ),
+  );
   const heroProduct =
     homepageData.featuredProducts[0] ?? homepageData.newProducts[0];
 
   return (
     <main className="overflow-hidden">
       <HomeHero product={heroProduct} />
-      <CategoryShortcuts categories={categories} />
-      <CommerceHighlights />
-
-      <MembershipPanel
-        isAuthenticated={Boolean(session)}
-        membershipLevel={membershipLevel}
-        lifetimePaidCents={lifetimePaidCents}
-      />
 
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <ProductShowcase
@@ -61,7 +65,14 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           description="由商城后台配置的推荐商品，适合想快速挑到重点好物的你。"
           products={homepageData.featuredProducts}
           isAuthenticated={Boolean(session)}
+          favoriteProductIds={favoriteProductIds}
         />
+      </div>
+
+      <CategoryShortcuts categories={categories} />
+      <CommerceHighlights />
+
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <ProductShowcase
           id="new-products"
           eyebrow="刚刚上新"
@@ -69,6 +80,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           description="按照真实上架时间更新，看看最近加入旧雨的新选择。"
           products={homepageData.newProducts}
           isAuthenticated={Boolean(session)}
+          favoriteProductIds={favoriteProductIds}
         />
         <ProductShowcase
           id="best-selling"
@@ -77,8 +89,15 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           description="根据成功支付且未退款的订单销量排序。"
           products={homepageData.bestSellingProducts}
           isAuthenticated={Boolean(session)}
+          favoriteProductIds={favoriteProductIds}
         />
       </div>
+
+      <MembershipPanel
+        isAuthenticated={Boolean(session)}
+        membershipLevel={membershipLevel}
+        lifetimePaidCents={lifetimePaidCents}
+      />
 
       <section id="catalog" className="scroll-mt-28 border-t border-stone-200 bg-[#f7f3ed]">
         <div className="mx-auto max-w-7xl px-6 py-14 lg:px-8 lg:py-18">
@@ -110,6 +129,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                     product={product}
                     memberPriceCents={discountedAmountCents}
                     isAuthenticated={Boolean(session)}
+                    isFavorited={favoriteProductIds.has(product.id)}
                   />
                 );
               })}

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { formatCny } from "@/lib/money";
 import type { ProductCardDto } from "@/server/services/catalog-service";
 
+import { FavoriteButton } from "@/features/engagement/favorite-button";
 import { ProductVisual } from "./product-visual";
 import { QuickPurchase } from "./quick-purchase";
 
@@ -10,6 +11,8 @@ type ProductCardProps = {
   product: ProductCardDto;
   memberPriceCents?: number;
   isAuthenticated?: boolean;
+  isFavorited?: boolean;
+  returnTo?: string;
   compact?: boolean;
 };
 
@@ -17,6 +20,8 @@ export function ProductCard({
   product,
   memberPriceCents,
   isAuthenticated = false,
+  isFavorited = false,
+  returnTo = "/",
   compact = false,
 }: ProductCardProps) {
   const hasMemberPrice =
@@ -24,18 +29,27 @@ export function ProductCard({
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-stone-200/80 bg-white shadow-[0_16px_50px_-36px_rgba(82,65,45,0.5)] transition duration-300 hover:-translate-y-1 hover:border-amber-200 hover:shadow-[0_24px_60px_-34px_rgba(120,78,32,0.45)]">
-      <Link href={`/products/${product.slug}`} className="relative block">
-        <ProductVisual
-          productId={product.id}
-          name={product.name}
-          coverUrl={product.coverUrl}
-        />
-        {product.promotionLabel ? (
-          <span className="absolute left-4 top-4 rounded-full bg-[#b86b35] px-3 py-1 text-xs font-medium text-white shadow-sm">
-            {product.promotionLabel}
-          </span>
-        ) : null}
-      </Link>
+      <div className="relative">
+        <Link href={`/products/${product.slug}`} className="block">
+          <ProductVisual
+            productId={product.id}
+            name={product.name}
+            coverUrl={product.coverUrl}
+          />
+          {product.promotionLabel ? (
+            <span className="absolute left-4 top-4 rounded-full bg-[#b86b35] px-3 py-1 text-xs font-medium text-white shadow-sm">
+              {product.promotionLabel}
+            </span>
+          ) : null}
+        </Link>
+        <div className="absolute right-4 top-4">
+          <FavoriteButton
+            productId={product.id}
+            favorited={isFavorited}
+            returnTo={returnTo}
+          />
+        </div>
+      </div>
 
       <div className={`flex flex-1 flex-col ${compact ? "p-4" : "p-5"}`}>
         <div className="flex items-center justify-between gap-3 text-xs">

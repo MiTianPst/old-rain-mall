@@ -5,7 +5,10 @@ import { notFound } from "next/navigation";
 
 import { ProductVisual } from "@/features/catalog/product-visual";
 import { VariantSelection } from "@/features/catalog/variant-selection";
+import { FavoriteButton } from "@/features/engagement/favorite-button";
+import { getCurrentSession } from "@/server/auth/session";
 import { catalogService } from "@/server/catalog";
+import { engagementService } from "@/server/engagement";
 
 import { getProductImageUrl } from "@/features/catalog/image";
 
@@ -27,8 +30,15 @@ export default async function ProductDetailPage({
   params,
 }: PageProps<"/products/[slug]">) {
   const { slug } = await params;
-  const product = await catalogService.getProductBySlug(slug);
+  const [product, session] = await Promise.all([
+    catalogService.getProductBySlug(slug),
+    getCurrentSession(),
+  ]);
   if (!product) notFound();
+  const favoriteProductIds = await engagementService.listFavoriteProductIds(
+    session?.user.id ?? null,
+    [product.id],
+  );
   const galleryImages = (product.images ?? [])
     .map((image) => ({ ...image, src: getProductImageUrl(image.url) }))
     .filter((image): image is typeof image & { src: string } => image.src !== null);
@@ -93,9 +103,16 @@ export default async function ProductDetailPage({
           >
             {product.category.name}
           </Link>
-          <h1 className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-stone-900 sm:text-5xl">
-            {product.name}
-          </h1>
+          <div className="mt-5 flex items-start justify-between gap-4">
+            <h1 className="text-4xl font-semibold tracking-[-0.04em] text-stone-900 sm:text-5xl">
+              {product.name}
+            </h1>
+            <FavoriteButton
+              productId={product.id}
+              favorited={favoriteProductIds.includes(product.id)}
+              returnTo={`/products/${product.slug}`}
+            />
+          </div>
           {product.summary ? (
             <p className="mt-5 text-lg leading-8 text-stone-600">
               {product.summary}
