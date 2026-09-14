@@ -36,6 +36,7 @@ export function ProductVisual({
           src={productImageUrl}
           alt={name}
           fill
+          unoptimized={productImageUrl.startsWith("https://")}
           priority={priority}
           sizes={
             large

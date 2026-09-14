@@ -50,6 +50,7 @@ export default async function ProductDetailPage({
                 src={galleryImages[0].src}
                 alt={galleryImages[0].altText ?? product.name}
                 fill
+                unoptimized={galleryImages[0].src.startsWith("https://")}
                 priority
                 sizes="(min-width: 1024px) 50vw, 100vw"
                 className="object-cover"
@@ -66,6 +67,7 @@ export default async function ProductDetailPage({
                       src={image.src}
                       alt={image.altText ?? product.name}
                       fill
+                      unoptimized={image.src.startsWith("https://")}
                       sizes="96px"
                       className="object-cover"
                     />
