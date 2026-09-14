@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { AddToCartButton } from "@/features/cart/add-to-cart-button";
+import { BuyNowButton } from "@/features/cart/buy-now-button";
 import { formatCny } from "@/lib/money";
 import type { ProductVariantDto } from "@/server/services/catalog-service";
 
@@ -87,11 +88,19 @@ export function VariantSelection({
         </p>
       </div>
 
-      <AddToCartButton
-        variantId={selectedVariant.id}
-        returnTo={returnTo}
-        disabled={selectedVariant.stock <= 0}
-      />
+      <div className="mt-8 grid gap-3 sm:grid-cols-2">
+        <AddToCartButton
+          variantId={selectedVariant.id}
+          returnTo={returnTo}
+          disabled={selectedVariant.stock <= 0}
+          compact
+        />
+        <BuyNowButton
+          variantId={selectedVariant.id}
+          returnTo={returnTo}
+          disabled={selectedVariant.stock <= 0}
+        />
+      </div>
     </section>
   );
 }

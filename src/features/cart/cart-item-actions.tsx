@@ -7,6 +7,7 @@ import {
   type CartItemActionState,
   updateCartItemAction,
 } from "@/app/actions/cart";
+import { getCartQuantityControls } from "./cart-quantity";
 
 const initialState: CartItemActionState = {
   status: "IDLE",
@@ -26,6 +27,7 @@ export function CartItemActions({
   stock,
   canUpdate,
 }: CartItemActionsProps) {
+  const controls = getCartQuantityControls({ quantity, stock });
   const [updateState, updateAction, updating] = useActionState(
     updateCartItemAction,
     initialState,
@@ -43,26 +45,31 @@ export function CartItemActions({
       <div className="flex flex-wrap items-center gap-3">
         <form action={updateAction} className="flex items-center gap-2">
           <input type="hidden" name="cartItemId" value={cartItemId} />
-          <label className="sr-only" htmlFor={`quantity-${cartItemId}`}>
-            商品数量
-          </label>
-          <input
-            id={`quantity-${cartItemId}`}
-            name="quantity"
-            type="number"
-            min={1}
-            max={Math.min(99, Math.max(1, stock))}
-            defaultValue={quantity}
-            disabled={!canUpdate || updating || removing}
-            className="w-20 rounded-xl border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-700 focus:ring-2 focus:ring-amber-100 disabled:bg-stone-100"
-          />
-          <button
-            type="submit"
-            disabled={!canUpdate || updating || removing}
-            className="rounded-full border border-stone-300 px-4 py-2 text-sm text-stone-700 transition hover:border-amber-700 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {updating ? "更新中…" : "更新"}
-          </button>
+          <div className="flex items-center overflow-hidden rounded-xl border border-stone-300 bg-white">
+            <button
+              type="submit"
+              name="quantity"
+              value={controls.previous ?? quantity}
+              aria-label="减少商品数量"
+              disabled={!canUpdate || controls.previous === null || updating || removing}
+              className="flex size-10 items-center justify-center text-lg text-stone-600 transition hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:text-stone-300"
+            >
+              −
+            </button>
+            <output aria-live="polite" className="flex min-w-10 justify-center border-x border-stone-200 px-2 text-sm font-medium text-stone-900">
+              {quantity}
+            </output>
+            <button
+              type="submit"
+              name="quantity"
+              value={controls.next ?? quantity}
+              aria-label="增加商品数量"
+              disabled={!canUpdate || controls.next === null || updating || removing}
+              className="flex size-10 items-center justify-center text-lg text-stone-600 transition hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:text-stone-300"
+            >
+              +
+            </button>
+          </div>
         </form>
 
         <form action={removeAction}>

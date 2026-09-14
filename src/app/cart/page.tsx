@@ -88,7 +88,7 @@ export default async function CartPage() {
 
           <aside className="h-fit rounded-3xl bg-stone-900 p-6 text-white">
             <p className="text-sm text-stone-400">商品合计</p>
-            <p className="mt-3 text-3xl font-semibold">{formatCny(cart.totalCents)}</p>
+            <p aria-live="polite" className="mt-3 text-3xl font-semibold">{formatCny(cart.totalCents)}</p>
             <p className="mt-5 text-sm leading-6 text-stone-400">
               结算时会重新校验库存、商品价格和会员折扣。
             </p>
