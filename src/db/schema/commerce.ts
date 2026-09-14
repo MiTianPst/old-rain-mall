@@ -20,12 +20,15 @@ export const orderStatuses = [
   "PENDING_PAYMENT",
   "PAID",
   "SHIPPED",
+  "IN_TRANSIT",
+  "DELIVERED",
   "COMPLETED",
   "CANCELLED",
   "CLOSED",
+  "REFUNDED",
 ] as const;
 
-export const paymentStatuses = ["PENDING", "SUCCESS", "FAILED"] as const;
+export const paymentStatuses = ["PENDING", "SUCCESS", "FAILED", "REFUNDED"] as const;
 export const paymentMethods = ["MOCK"] as const;
 export const inventoryTransactionTypes = [
   "INITIAL",
@@ -98,6 +101,7 @@ export const orders = mysqlTable(
     shippingFeeCents: int("shipping_fee_cents", { unsigned: true })
       .notNull()
       .default(0),
+    adminNote: varchar("admin_note", { length: 1000 }),
     totalCents: bigint("total_cents", {
       mode: "number",
       unsigned: true,
@@ -178,6 +182,7 @@ export const inventoryTransactions = mysqlTable(
       () => users.id,
       { onDelete: "restrict" },
     ),
+    idempotencyKey: varchar("idempotency_key", { length: 160 }),
     note: varchar("note", { length: 500 }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
@@ -191,6 +196,54 @@ export const inventoryTransactions = mysqlTable(
       table.referenceId,
     ),
     index("inventory_transactions_operator_idx").on(table.operatorUserId),
+    uniqueIndex("inventory_transactions_idempotency_key_unique").on(table.idempotencyKey),
+  ],
+);
+
+export const shipmentStatuses = ["PENDING", "SHIPPED", "IN_TRANSIT", "DELIVERED"] as const;
+
+export const shipments = mysqlTable(
+  "shipments",
+  {
+    id: int("id", { unsigned: true }).autoincrement().primaryKey(),
+    orderId: int("order_id", { unsigned: true }).notNull().references(() => orders.id, { onDelete: "restrict" }),
+    carrier: varchar("carrier", { length: 100 }).notNull(),
+    trackingNo: varchar("tracking_no", { length: 100 }).notNull(),
+    status: mysqlEnum("status", shipmentStatuses).notNull().default("PENDING"),
+    shippedAt: timestamp("shipped_at"),
+    deliveredAt: timestamp("delivered_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (table) => [
+    uniqueIndex("shipments_order_id_unique").on(table.orderId),
+    index("shipments_status_updated_idx").on(table.status, table.updatedAt),
+  ],
+);
+
+export const afterSaleStatuses = ["REQUESTED", "APPROVED", "REJECTED", "REFUNDING", "REFUNDED"] as const;
+
+export const afterSales = mysqlTable(
+  "after_sales",
+  {
+    id: int("id", { unsigned: true }).autoincrement().primaryKey(),
+    orderId: int("order_id", { unsigned: true }).notNull().references(() => orders.id, { onDelete: "restrict" }),
+    userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "restrict" }),
+    reason: varchar("reason", { length: 100 }).notNull(),
+    description: varchar("description", { length: 1000 }).notNull(),
+    status: mysqlEnum("status", afterSaleStatuses).notNull().default("REQUESTED"),
+    refundAmountCents: bigint("refund_amount_cents", { mode: "number", unsigned: true }).notNull(),
+    reviewNote: varchar("review_note", { length: 1000 }),
+    reviewedBy: varchar("reviewed_by", { length: 36 }).references(() => users.id, { onDelete: "restrict" }),
+    reviewedAt: timestamp("reviewed_at"),
+    refundedAt: timestamp("refunded_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (table) => [
+    uniqueIndex("after_sales_order_id_unique").on(table.orderId),
+    index("after_sales_user_created_idx").on(table.userId, table.createdAt),
+    index("after_sales_status_created_idx").on(table.status, table.createdAt),
   ],
 );
 

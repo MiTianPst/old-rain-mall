@@ -1,10 +1,99 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ProductVisual } from "@/features/catalog/product-visual";
+
+import { AfterSaleReviewActions, RefundAfterSaleButton } from "@/features/admin/after-sale-actions";
+import { OrderNoteForm } from "@/features/admin/order-note-form";
 import { AdminOrderStatusActions } from "@/features/admin/order-status-actions";
-import { formatDiscountRate, formatOrderTime, orderStatusLabels } from "@/features/order/presentation";
+import { ProductVisual } from "@/features/catalog/product-visual";
+import { afterSaleStatusLabels, formatDiscountRate, formatOrderTime, formatVariantSnapshot, orderStatusLabels, shipmentStatusLabels } from "@/features/order/presentation";
 import { getMembershipLabel } from "@/lib/membership";
 import { formatCny } from "@/lib/money";
 import { getAdminSession } from "@/server/admin/auth";
 import { adminOrderService } from "@/server/admin-orders";
-export default async function AdminOrderDetailPage(props: PageProps<"/admin/orders/[orderNo]">) { const { orderNo } = await props.params; const admin = await getAdminSession(); const result = await adminOrderService.getByOrderNo(admin, orderNo); if (!result.ok) notFound(); const order = result.order; return <main><Link href="/admin/orders" className="text-sm text-amber-800">← 返回订单管理</Link><div className="mt-5 flex flex-wrap justify-between gap-4"><div><p className="text-sm text-stone-500">订单号</p><h1 className="mt-1 text-3xl font-semibold">{order.orderNo}</h1><p className="mt-2 text-sm text-stone-500">{formatOrderTime(order.createdAt)} · {order.userName}（{order.userEmail}）</p></div><span className="h-fit rounded-full bg-stone-900 px-4 py-2 text-sm text-white">{orderStatusLabels[order.status]}</span></div><div className="mt-8 grid gap-6 xl:grid-cols-[1fr_20rem]"><div className="space-y-5"><section className="rounded-3xl border border-stone-200 bg-white p-6"><h2 className="font-semibold">收货快照</h2><p className="mt-3">{order.recipientName} · {order.recipientPhone}</p><p className="mt-1 text-sm text-stone-500">{order.recipientAddress}</p></section><section className="rounded-3xl border border-stone-200 bg-white p-6"><h2 className="font-semibold">商品快照</h2><div className="mt-4 space-y-4">{order.items.map((item) => <div key={item.productId} className="grid grid-cols-[4rem_1fr_auto] items-center gap-4 border-t border-stone-100 pt-4 first:border-0 first:pt-0"><ProductVisual productId={item.productId} name={item.productName} coverUrl={item.productCoverUrl} /><div><p className="font-medium">{item.productName}</p><p className="text-sm text-stone-500">{formatCny(item.unitPriceCents)} × {item.quantity}</p></div><strong>{formatCny(item.subtotalCents)}</strong></div>)}</div></section></div><aside className="h-fit rounded-3xl bg-white p-6 ring-1 ring-stone-200"><p className="text-sm text-amber-800">{getMembershipLabel(order.membershipLevelSnapshot)} · {formatDiscountRate(order.discountRateBps)}</p><dl className="mt-5 space-y-3 text-sm"><div className="flex justify-between"><dt>原价</dt><dd>{formatCny(order.originalAmountCents)}</dd></div><div className="flex justify-between"><dt>优惠</dt><dd>-{formatCny(order.memberDiscountCents)}</dd></div><div className="flex justify-between"><dt>运费</dt><dd>包邮</dd></div><div className="flex justify-between border-t pt-3 text-base"><dt>实付</dt><dd className="font-semibold text-amber-800">{formatCny(order.totalCents)}</dd></div></dl><div className="mt-5 space-y-1 text-xs text-stone-500"><p>支付状态：{order.paymentStatus === "SUCCESS" ? "成功" : order.paymentStatus === "FAILED" ? "失败" : "待支付"}</p>{order.paidAt ? <p>支付时间：{formatOrderTime(order.paidAt)}</p> : null}{order.shippedAt ? <p>发货时间：{formatOrderTime(order.shippedAt)}</p> : null}{order.completedAt ? <p>完成时间：{formatOrderTime(order.completedAt)}</p> : null}</div>{order.status === "PAID" || order.status === "SHIPPED" ? <AdminOrderStatusActions orderNo={order.orderNo} status={order.status} /> : null}</aside></div></main>; }
+
+export default async function AdminOrderDetailPage(props: PageProps<"/admin/orders/[orderNo]">) {
+  const { orderNo } = await props.params;
+  const admin = await getAdminSession();
+  const result = await adminOrderService.getByOrderNo(admin, orderNo);
+  if (!result.ok) notFound();
+  const order = result.order;
+
+  return (
+    <main>
+      <Link href="/admin/orders" className="text-sm text-amber-800">← 返回订单管理</Link>
+      <div className="mt-5 flex flex-wrap justify-between gap-4">
+        <div>
+          <p className="text-sm text-stone-500">订单号</p>
+          <h1 className="mt-1 text-3xl font-semibold">{order.orderNo}</h1>
+          <p className="mt-2 text-sm text-stone-500">{formatOrderTime(order.createdAt)} · {order.userName}（{order.userEmail}）</p>
+        </div>
+        <span className="h-fit rounded-full bg-stone-900 px-4 py-2 text-sm text-white">{orderStatusLabels[order.status]}</span>
+      </div>
+
+      <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_20rem]">
+        <div className="space-y-5">
+          <section className="rounded-3xl border border-stone-200 bg-white p-6">
+            <h2 className="font-semibold">收货快照</h2>
+            <p className="mt-3">{order.recipientName} · {order.recipientPhone}</p>
+            <p className="mt-1 text-sm text-stone-500">{order.recipientAddress}</p>
+          </section>
+
+          <section className="rounded-3xl border border-stone-200 bg-white p-6">
+            <h2 className="font-semibold">商品快照</h2>
+            <div className="mt-4 space-y-4">
+              {order.items.map((item) => (
+                <div key={item.variantId} className="grid grid-cols-[4rem_1fr_auto] items-center gap-4 border-t border-stone-100 pt-4 first:border-0 first:pt-0">
+                  <ProductVisual productId={item.productId} name={item.productName} coverUrl={item.productCoverUrl} />
+                  <div>
+                    <p className="font-medium">{item.productName}</p>
+                    <p className="text-sm text-stone-500">{formatVariantSnapshot(item.variantName, item.variantAttributesJson)}</p>
+                    <p className="text-sm text-stone-500">{formatCny(item.unitPriceCents)} × {item.quantity}</p>
+                  </div>
+                  <strong>{formatCny(item.subtotalCents)}</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {order.shipment ? (
+            <section className="rounded-3xl border border-stone-200 bg-white p-6">
+              <h2 className="font-semibold">物流信息</h2>
+              <p className="mt-3">{order.shipment.carrier} · {order.shipment.trackingNo}</p>
+              <p className="mt-1 text-sm text-stone-500">状态：{shipmentStatusLabels[order.shipment.status]}</p>
+            </section>
+          ) : null}
+
+          {order.afterSale ? (
+            <section className="rounded-3xl border border-stone-200 bg-white p-6">
+              <h2 className="font-semibold">售后处理</h2>
+              <p className="mt-3 text-sm">{order.afterSale.reason} · {afterSaleStatusLabels[order.afterSale.status]}</p>
+              <p className="mt-1 text-sm leading-6 text-stone-500">{order.afterSale.description}</p>
+              <p className="mt-1 text-sm text-stone-500">退款金额：{formatCny(order.afterSale.refundAmountCents)}</p>
+              {order.afterSale.reviewNote ? <p className="mt-1 text-sm text-stone-500">审核说明：{order.afterSale.reviewNote}</p> : null}
+              {order.afterSale.status === "REQUESTED" ? <AfterSaleReviewActions afterSaleId={order.afterSale.id} /> : null}
+              {order.afterSale.status === "APPROVED" ? <RefundAfterSaleButton afterSaleId={order.afterSale.id} /> : null}
+            </section>
+          ) : null}
+        </div>
+
+        <aside className="h-fit rounded-3xl bg-white p-6 ring-1 ring-stone-200">
+          <p className="text-sm text-amber-800">{getMembershipLabel(order.membershipLevelSnapshot)} · {formatDiscountRate(order.discountRateBps)}</p>
+          <dl className="mt-5 space-y-3 text-sm">
+            <div className="flex justify-between"><dt>原价</dt><dd>{formatCny(order.originalAmountCents)}</dd></div>
+            <div className="flex justify-between"><dt>优惠</dt><dd>-{formatCny(order.memberDiscountCents)}</dd></div>
+            <div className="flex justify-between"><dt>运费</dt><dd>包邮</dd></div>
+            <div className="flex justify-between border-t pt-3 text-base"><dt>实付</dt><dd className="font-semibold text-amber-800">{formatCny(order.totalCents)}</dd></div>
+          </dl>
+          <div className="mt-5 space-y-1 text-xs text-stone-500">
+            <p>支付状态：{order.paymentStatus === "SUCCESS" ? "成功" : order.paymentStatus === "REFUNDED" ? "已退款" : order.paymentStatus === "FAILED" ? "失败" : "待支付"}</p>
+            {order.paidAt ? <p>支付时间：{formatOrderTime(order.paidAt)}</p> : null}
+            {order.shippedAt ? <p>发货时间：{formatOrderTime(order.shippedAt)}</p> : null}
+            {order.completedAt ? <p>完成时间：{formatOrderTime(order.completedAt)}</p> : null}
+          </div>
+          {order.status === "PAID" || order.status === "SHIPPED" || order.status === "IN_TRANSIT" || order.status === "DELIVERED" ? <AdminOrderStatusActions orderNo={order.orderNo} status={order.status} /> : null}
+          <OrderNoteForm orderNo={order.orderNo} note={order.adminNote} />
+        </aside>
+      </div>
+    </main>
+  );
+}

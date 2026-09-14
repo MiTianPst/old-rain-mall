@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { safeNextPath } from "@/features/auth/schema";
-import { getCurrentSession } from "@/server/auth/session";
+import { getActiveUserIdentity, getCurrentSession } from "@/server/auth/session";
 import { cartService } from "@/server/cart";
 
 const addToCartSchema = z.object({
@@ -38,11 +38,12 @@ export async function addToCartAction(
     return { status: "ERROR", message: "加入购物车的参数不正确" };
   }
 
-  const session = await getCurrentSession();
+  const identity = await getActiveUserIdentity();
   const result = await cartService.addItem({
-    userId: session?.user.id ?? null,
+    userId: identity?.session.user.id ?? null,
     variantId: parsed.data.variantId,
     quantity: parsed.data.quantity,
+    userStatus: identity?.user.status,
   });
 
   if (!result.ok) {

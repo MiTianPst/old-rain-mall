@@ -12,6 +12,8 @@ import {
   payments,
   products,
   productVariants,
+  shipments,
+  afterSales,
   userAddresses,
   users,
 } from "@/db/schema";
@@ -54,6 +56,8 @@ const orderSelection = {
   recipientAddress: orders.recipientAddress,
   paidAt: orders.paidAt,
   cancelledAt: orders.cancelledAt,
+  shippedAt: orders.shippedAt,
+  completedAt: orders.completedAt,
 };
 
 async function loadOrderItems(orderIds: number[]) {
@@ -93,6 +97,49 @@ async function loadOrderItems(orderIds: number[]) {
     grouped.set(row.orderId, items);
   }
   return grouped;
+}
+
+async function loadShipments(orderIds: number[]) {
+  if (orderIds.length === 0) return new Map<number, OrderRecord["shipment"]>();
+  const rows = await db
+    .select({ orderId: shipments.orderId, shipment: shipments })
+    .from(shipments)
+    .where(inArray(shipments.orderId, orderIds));
+  return new Map(rows.map((row) => [row.orderId, {
+    id: row.shipment.id,
+    orderId: row.shipment.orderId,
+    carrier: row.shipment.carrier,
+    trackingNo: row.shipment.trackingNo,
+    status: row.shipment.status,
+    shippedAt: row.shipment.shippedAt,
+    deliveredAt: row.shipment.deliveredAt,
+    updatedAt: row.shipment.updatedAt,
+  }]));
+}
+
+async function loadAfterSales(orderIds: number[]) {
+  if (orderIds.length === 0) return new Map<number, OrderRecord["afterSale"]>();
+  const rows = await db
+    .select({ orderId: afterSales.orderId, orderNo: orders.orderNo, sale: afterSales })
+    .from(afterSales)
+    .innerJoin(orders, eq(orders.id, afterSales.orderId))
+    .where(inArray(afterSales.orderId, orderIds));
+  return new Map(rows.map((row) => [row.orderId, {
+    id: row.sale.id,
+    orderId: row.sale.orderId,
+    orderNo: row.orderNo,
+    userId: row.sale.userId,
+    reason: row.sale.reason,
+    description: row.sale.description,
+    status: row.sale.status,
+    refundAmountCents: row.sale.refundAmountCents,
+    reviewNote: row.sale.reviewNote,
+    reviewedBy: row.sale.reviewedBy,
+    reviewedAt: row.sale.reviewedAt,
+    refundedAt: row.sale.refundedAt,
+    createdAt: row.sale.createdAt,
+    updatedAt: row.sale.updatedAt,
+  }]));
 }
 
 async function createOrderTransaction(input: Parameters<OrderRepository["create"]>[0]) {
@@ -418,11 +465,18 @@ export const orderRepository: OrderRepository = {
       .from(orders)
       .where(eq(orders.userId, userId))
       .orderBy(desc(orders.createdAt), desc(orders.id));
-    const items = await loadOrderItems(rows.map((row) => row.id));
+    const ids = rows.map((row) => row.id);
+    const [items, shipmentMap, afterSaleMap] = await Promise.all([
+      loadOrderItems(ids),
+      loadShipments(ids),
+      loadAfterSales(ids),
+    ]);
     return rows.map((row) => ({
       ...row,
       membershipLevelSnapshot: row.membershipLevelSnapshot as MembershipLevel,
       items: items.get(row.id) ?? [],
+      shipment: shipmentMap.get(row.id) ?? null,
+      afterSale: afterSaleMap.get(row.id) ?? null,
     }));
   },
 
@@ -433,11 +487,17 @@ export const orderRepository: OrderRepository = {
       .where(and(eq(orders.orderNo, input.orderNo), eq(orders.userId, input.userId)))
       .limit(1);
     if (!row) return null;
-    const items = await loadOrderItems([row.id]);
+    const [items, shipmentMap, afterSaleMap] = await Promise.all([
+      loadOrderItems([row.id]),
+      loadShipments([row.id]),
+      loadAfterSales([row.id]),
+    ]);
     return {
       ...row,
       membershipLevelSnapshot: row.membershipLevelSnapshot as MembershipLevel,
       items: items.get(row.id) ?? [],
+      shipment: shipmentMap.get(row.id) ?? null,
+      afterSale: afterSaleMap.get(row.id) ?? null,
     };
   },
 

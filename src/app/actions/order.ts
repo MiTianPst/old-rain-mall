@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { cancelOrderSchema, createOrderSchema } from "@/features/order/schema";
-import { getCurrentSession } from "@/server/auth/session";
+import { getActiveUserIdentity, getCurrentSession } from "@/server/auth/session";
 import { orderService } from "@/server/orders";
 
 export type OrderActionState = {
@@ -25,8 +25,8 @@ export async function createOrderAction(
   _previousState: OrderActionState,
   formData: FormData,
 ): Promise<OrderActionState> {
-  const session = await getCurrentSession();
-  if (!session) return errorState("请先登录后再创建订单");
+  const identity = await getActiveUserIdentity();
+  if (!identity) return errorState("请先登录后再创建订单");
 
   const parsed = createOrderSchema.safeParse({ addressId: formData.get("addressId") });
   if (!parsed.success) return errorState("请选择有效的收货地址");
@@ -34,8 +34,9 @@ export async function createOrderAction(
   let orderNo: string;
   try {
     const result = await orderService.createOrder({
-      userId: session.user.id,
+      userId: identity.session.user.id,
       addressId: parsed.data.addressId,
+      userStatus: identity.user.status,
     });
     if (!result.ok) return errorState(result.message);
     orderNo = result.orderNo;

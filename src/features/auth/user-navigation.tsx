@@ -33,6 +33,7 @@ export async function UserNavigation() {
           {getMembershipLabel((session.user.membershipLevel ?? 0) as MembershipLevel)} · 累计 {formatCny(session.user.lifetimePaidCents ?? 0)}
         </span>
       </span>
+      <Link href="/account/password" className="hidden text-xs text-stone-500 hover:text-amber-800 sm:block">修改密码</Link>
       <LogoutButton />
     </div>
   );

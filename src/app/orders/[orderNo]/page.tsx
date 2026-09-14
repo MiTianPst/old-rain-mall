@@ -3,7 +3,9 @@ import { notFound, redirect } from "next/navigation";
 
 import { ProductVisual } from "@/features/catalog/product-visual";
 import { CancelOrderButton } from "@/features/order/cancel-order-button";
-import { formatDiscountRate, formatOrderTime, formatVariantSnapshot, orderStatusLabels } from "@/features/order/presentation";
+import { AfterSaleForm } from "@/features/order/after-sale-form";
+import { ConfirmReceiptButton } from "@/features/order/confirm-receipt-button";
+import { afterSaleStatusLabels, formatDiscountRate, formatOrderTime, formatVariantSnapshot, orderStatusLabels, shipmentStatusLabels } from "@/features/order/presentation";
 import { getMembershipLabel } from "@/lib/membership";
 import { formatCny } from "@/lib/money";
 import { MockPaymentButton } from "@/features/payment/mock-payment-button";
@@ -34,6 +36,8 @@ export default async function OrderDetailPage(props: PageProps<"/orders/[orderNo
             <h2 className="text-lg font-semibold">商品快照</h2>
             <div className="mt-5 space-y-4">{order.items.map((item) => <div key={item.variantId} className="grid grid-cols-[5rem_1fr_auto] items-center gap-4 border-t border-stone-100 pt-4 first:border-0 first:pt-0"><ProductVisual productId={item.productId} name={item.productName} coverUrl={item.productCoverUrl} /><div><p className="font-medium">{item.productName}</p><p className="mt-1 text-xs text-stone-500">{formatVariantSnapshot(item.variantName, item.variantAttributesJson)}</p><p className="mt-1 text-sm text-stone-500">{formatCny(item.unitPriceCents)} × {item.quantity}</p></div><p className="font-medium">{formatCny(item.subtotalCents)}</p></div>)}</div>
           </section>
+          {order.shipment ? <section className="rounded-3xl border border-stone-200 bg-white p-6"><h2 className="text-lg font-semibold">物流信息</h2><p className="mt-4 font-medium">{order.shipment.carrier} · {order.shipment.trackingNo}</p><p className="mt-2 text-sm text-stone-500">状态：{shipmentStatusLabels[order.shipment.status]}</p>{order.shipment.shippedAt ? <p className="mt-1 text-sm text-stone-500">发货时间：{formatOrderTime(order.shipment.shippedAt)}</p> : null}{order.shipment.deliveredAt ? <p className="mt-1 text-sm text-stone-500">送达时间：{formatOrderTime(order.shipment.deliveredAt)}</p> : null}{order.status === "SHIPPED" || order.status === "IN_TRANSIT" ? <ConfirmReceiptButton orderNo={order.orderNo} /> : null}</section> : null}
+          {order.afterSale ? <section className="rounded-3xl border border-stone-200 bg-white p-6"><h2 className="text-lg font-semibold">售后记录</h2><p className="mt-4 text-sm">售后状态：<span className="font-medium text-amber-800">{afterSaleStatusLabels[order.afterSale.status]}</span></p><p className="mt-2 text-sm text-stone-500">原因：{order.afterSale.reason}</p><p className="mt-2 text-sm leading-6 text-stone-500">说明：{order.afterSale.description}</p><p className="mt-2 text-sm text-stone-500">退款金额：{formatCny(order.afterSale.refundAmountCents)}</p>{order.afterSale.reviewNote ? <p className="mt-2 text-sm text-stone-500">审核说明：{order.afterSale.reviewNote}</p> : null}</section> : (order.status === "PAID" || order.status === "SHIPPED" || order.status === "IN_TRANSIT" || order.status === "DELIVERED" || order.status === "COMPLETED" ? <section className="rounded-3xl border border-stone-200 bg-white p-6"><h2 className="text-lg font-semibold">申请售后</h2><p className="mt-1 text-sm text-stone-500">订单级售后仅可申请一次，退款金额以订单实付为准。</p><AfterSaleForm orderNo={order.orderNo} /></section> : null)}
         </div>
         <aside className="h-fit rounded-3xl bg-white p-6 ring-1 ring-stone-200">
           <p className="text-sm text-amber-800">{getMembershipLabel(order.membershipLevelSnapshot)} · {formatDiscountRate(order.discountRateBps)}计价</p>

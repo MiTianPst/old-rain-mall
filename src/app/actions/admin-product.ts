@@ -7,6 +7,7 @@ import { parseAdminProductFormData, parseAdminVariants, parsePositiveInteger } f
 import { getAdminSession } from "@/server/admin/auth";
 import { adminProductService } from "@/server/admin-products";
 import { inventoryService } from "@/server/inventory";
+import { auditService } from "@/server/audit";
 
 export type AdminProductActionState = { status: "IDLE" | "SUCCESS" | "ERROR"; message: string; fieldErrors?: Record<string, string[]> };
 const errorState = (message: string, fieldErrors?: Record<string, string[]>): AdminProductActionState => ({ status: "ERROR", message, fieldErrors });
@@ -20,6 +21,7 @@ export async function createAdminProductAction(_state: AdminProductActionState, 
   try {
     const result = await adminProductService.create(admin, parsed.data);
     if (!result.ok) return errorState(result.message);
+    await auditService.record(admin, { action: "PRODUCT_CREATE", targetType: "PRODUCT", targetId: String(result.id), summary: `创建商品：${parsed.data.name}` }).catch(() => undefined);
   } catch (error) { console.error("创建商品失败", { error }); return errorState("创建商品失败，请稍后重试"); }
   refreshProductPaths();
   redirect("/admin/products");
@@ -36,6 +38,7 @@ export async function updateAdminProductAction(_state: AdminProductActionState, 
   try {
     const result = await adminProductService.update(admin, { id, version, data: parsed.data });
     if (!result.ok) return errorState(result.message);
+    await auditService.record(admin, { action: "PRODUCT_UPDATE", targetType: "PRODUCT", targetId: String(id), summary: `更新商品：${parsed.data.name}` }).catch(() => undefined);
   } catch (error) { console.error("更新商品失败", { error }); return errorState("更新商品失败，请稍后重试"); }
   refreshProductPaths();
   redirect("/admin/products");
@@ -50,6 +53,7 @@ export async function archiveAdminProductAction(_state: AdminProductActionState,
   try {
     const result = await adminProductService.archive(admin, { id, version: versionValue });
     if (!result.ok) return errorState(result.message);
+    await auditService.record(admin, { action: "PRODUCT_ARCHIVE", targetType: "PRODUCT", targetId: String(id), summary: "归档商品" }).catch(() => undefined);
   } catch (error) { console.error("归档商品失败", { error }); return errorState("归档商品失败，请稍后重试"); }
   refreshProductPaths();
   return { status: "SUCCESS", message: "商品已归档" };
@@ -67,6 +71,7 @@ export async function updateAdminVariantsAction(_state: AdminProductActionState,
   try {
     const result = await adminProductService.updateVariants(admin, { productId, version, variants: parsed.data });
     if (!result.ok) return errorState(result.message);
+    await auditService.record(admin, { action: "VARIANT_UPDATE", targetType: "PRODUCT", targetId: String(productId), summary: "更新商品 SKU" }).catch(() => undefined);
   } catch (error) { console.error("更新 SKU 失败", { error }); return errorState("更新 SKU 失败，请稍后重试"); }
   revalidatePath(`/admin/products/${productId}/edit`);
   revalidatePath("/admin/products");
@@ -85,6 +90,7 @@ export async function adjustInventoryAction(_state: AdminProductActionState, for
   try {
     const result = await inventoryService.adjustStock(admin, { variantId, quantityDelta, note });
     if (!result.ok) return errorState(result.message);
+    await auditService.record(admin, { action: "INVENTORY_ADJUST", targetType: "INVENTORY", targetId: String(variantId), summary: `调整库存：${quantityDelta}` }).catch(() => undefined);
     revalidatePath("/admin/products");
     revalidatePath("/admin/products/[id]/edit", "page");
     revalidatePath("/admin");

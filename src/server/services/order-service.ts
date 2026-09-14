@@ -4,13 +4,15 @@ import type { AddressRecord } from "./address-service";
 import type { CartItemRecord } from "./cart-service";
 import { calculateOrderPricing, type OrderPricing } from "@/features/order/pricing";
 import type { MembershipLevel } from "@/lib/membership";
+import type { AfterSaleRecord } from "@/server/services/after-sale-service";
+import type { ShipmentRecord } from "@/server/services/shipment-service";
 
 export type OrderRecord = {
   id: number;
   orderNo: string;
   userId: string;
-  status: "PENDING_PAYMENT" | "PAID" | "SHIPPED" | "COMPLETED" | "CANCELLED" | "CLOSED";
-  paymentStatus: "PENDING" | "SUCCESS" | "FAILED";
+  status: "PENDING_PAYMENT" | "PAID" | "SHIPPED" | "IN_TRANSIT" | "DELIVERED" | "COMPLETED" | "CANCELLED" | "CLOSED" | "REFUNDED";
+  paymentStatus: "PENDING" | "SUCCESS" | "FAILED" | "REFUNDED";
   membershipLevelSnapshot: MembershipLevel;
   originalAmountCents: number;
   discountRateBps: number;
@@ -24,6 +26,10 @@ export type OrderRecord = {
   recipientAddress: string;
   paidAt: Date | null;
   cancelledAt: Date | null;
+  shippedAt: Date | null;
+  completedAt: Date | null;
+  shipment: ShipmentRecord | null;
+  afterSale: AfterSaleRecord | null;
   items: Array<{
     productId: number;
     variantId: number;
@@ -108,8 +114,9 @@ export function createOrderService(repository: OrderRepository, options: { now?:
       return { ok: true as const, data: checkout, pricing };
     },
 
-    async createOrder(input: { userId: string | null; addressId: number }) {
+    async createOrder(input: { userId: string | null; addressId: number; userStatus?: "ACTIVE" | "FROZEN" }) {
       if (!input.userId) return idResult("请先登录后再创建订单");
+      if (input.userStatus === "FROZEN") return { ok: false as const, code: "ACCOUNT_FROZEN" as const, message: "账号已被冻结，暂时无法执行此操作" };
       if (!Number.isSafeInteger(input.addressId) || input.addressId <= 0) {
         return errorResult("ADDRESS_NOT_FOUND", "收货地址不存在");
       }

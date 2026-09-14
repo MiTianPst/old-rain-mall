@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/server/admin/auth";
 import { productImageRepository } from "@/server/repositories/product-image-repository";
 import { createProductImageService } from "@/server/services/product-image-service";
+import { auditService } from "@/server/audit";
 
 const service = createProductImageService(productImageRepository);
 
@@ -23,10 +24,10 @@ export async function POST(request: Request) {
     revalidatePath(`/admin/products/${productId}/edit`);
     revalidatePath("/", "page");
     revalidatePath("/products/[slug]", "page");
+    await auditService.record(admin, { action: "PRODUCT_IMAGE_UPLOAD", targetType: "PRODUCT_IMAGE", targetId: String(result.image.id), summary: "上传商品图片" }).catch(() => undefined);
     return Response.json({ data: result.image }, { status: 201 });
   } catch (error) {
     console.error("上传商品图片失败", { errorName: error instanceof Error ? error.name : "UnknownError" });
     return Response.json({ error: { code: "INTERNAL_ERROR", message: "图片上传失败，请稍后重试" } }, { status: 500 });
   }
 }
-

@@ -31,7 +31,7 @@ export interface PaymentRepository {
 }
 
 function errorResult(
-  code: "UNAUTHORIZED" | "ORDER_NOT_FOUND" | "ORDER_EXPIRED" | "INVALID_STATE" | "AMOUNT_MISMATCH" | "PAYMENT_FAILED",
+  code: "UNAUTHORIZED" | "ACCOUNT_FROZEN" | "ORDER_NOT_FOUND" | "ORDER_EXPIRED" | "INVALID_STATE" | "AMOUNT_MISMATCH" | "PAYMENT_FAILED",
   message: string,
 ) {
   return { ok: false as const, code, message };
@@ -52,8 +52,9 @@ export function createPaymentService(input: {
   const now = input.now ?? (() => new Date());
 
   return {
-    async pay({ userId, orderNo }: { userId: string | null; orderNo: string }) {
+    async pay({ userId, orderNo, userStatus }: { userId: string | null; orderNo: string; userStatus?: "ACTIVE" | "FROZEN" }) {
       if (!userId) return errorResult("UNAUTHORIZED", "请先登录后再支付");
+      if (userStatus === "FROZEN") return errorResult("ACCOUNT_FROZEN", "账号已被冻结，暂时无法执行此操作");
       const currentTime = new Date(now().getTime());
       const payable = await input.repository.getPayableOrder({ userId, orderNo, now: currentTime });
       if (payable.status === "ALREADY_PAID") {

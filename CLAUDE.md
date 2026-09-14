@@ -18,7 +18,7 @@
 ## 当前状态
 
 - Next.js 基础工程已创建，首页与商品详情页可正常构建。
-- Drizzle ORM 与 MySQL 数据层已接入，地址簿及支付渠道字段迁移已实际执行，共包含 13 张表。
+- Drizzle ORM 与 MySQL 数据层已接入，地址簿、SKU、库存、物流、售后、用户状态、限流和审计迁移已生成，共包含 19 张表。
 - 已提供分类和商品种子数据，首页支持真实商品搜索、分类筛选和每页 9 条分页。
 - 已提供商品列表、商品详情和分类公开 API。
 - 已接入 Better Auth 邮箱密码认证与数据库 Session。
@@ -26,7 +26,10 @@
 - 已完成地址簿、会员折扣、结算、原子下单、两小时订单过期、取消订单与库存恢复。
 - 已完成幂等模拟支付、累计实付更新、心悦会员升级和支付结果展示。
 - 已完成管理员权限、后台概览、商品 CRUD（归档代替删除）、分类管理和订单履约管理。
-- 已开始统一验收：单元测试、MySQL 集成测试、类型检查、ESLint、生产构建和浏览器主流程均已通过。
+- 已完成物流状态流转、收货确认、售后申请/审核/模拟退款及退款库存恢复。
+- 已完成用户与会员后台、冻结交易拦截、修改密码、忘记密码、登录/重置限流和管理员操作审计。
+- 已完成订单管理员备注、组合筛选、UTF-8 CSV 导出和上海时区运营看板。
+- 已开始统一验收：单元测试、类型检查、ESLint 和生产构建已通过；MySQL 集成测试需在 Docker 引擎启动且执行最新迁移后运行。
 
 ## 技术栈
 
@@ -129,9 +132,12 @@ drizzle.config.ts        Drizzle Kit 配置
 ### 用户与认证
 
 - `users`：用户资料、角色、会员等级和累计实付金额
+- `users.status`：`ACTIVE` 或 `FROZEN`；冻结用户可登录和读取历史数据，但不能发起新的交易写入
 - `sessions`：登录会话
 - `accounts`：密码或第三方账号信息
 - `verifications`：验证记录
+- `rate_limits`：Better Auth IP 限流和账号摘要限流记录
+- `audit_logs`：管理员写操作审计
 
 角色只有 `USER` 和 `ADMIN`。后台权限必须在服务端校验，隐藏按钮不能代替鉴权。
 
@@ -140,6 +146,8 @@ drizzle.config.ts        Drizzle Kit 配置
 - `categories`：一级商品分类
 - `products`：商品、价格、库存和上下架状态
 - `product_images`：商品图片
+- `product_variants`：商品 SKU、规格、价格和实时库存
+- `inventory_transactions`：库存调整、销售、取消恢复和退款恢复流水
 
 商品状态为 `DRAFT`、`ACTIVE` 或 `ARCHIVED`。历史订单关联的商品不得硬删除，应改为归档状态。
 
@@ -150,11 +158,13 @@ drizzle.config.ts        Drizzle Kit 配置
 - `order_items`：商品名称、图片、单价和数量快照
 - `payments`：模拟支付记录
 - `membership_level_logs`：会员升级审计流水
+- `shipments`：物流公司、单号及运输状态
+- `after_sales`：售后申请、审核、退款及处理状态
 
 订单状态：
 
 ```text
-PENDING_PAYMENT -> PAID -> SHIPPED -> COMPLETED
+PENDING_PAYMENT -> PAID -> SHIPPED -> IN_TRANSIT -> DELIVERED -> COMPLETED
         |           |
         +-----------+----> CANCELLED
 
@@ -223,10 +233,17 @@ PENDING_PAYMENT 超时后可进入 CLOSED
 /admin/categories         分类管理
 /admin/orders             订单管理
 /admin/orders/[orderNo]   后台订单详情与履约操作
+/admin/users               用户与会员管理
+/admin/users/[id]          用户详情、会员流水和冻结/解冻
+/admin/audit-logs          管理员操作审计
+/account/password          修改密码
+/forgot-password           申请密码重置
+/reset-password            使用一次性令牌重置密码
 /api/auth/[...all]        认证接口
 /api/products             公开商品列表接口
 /api/products/[id]        公开商品详情接口
 /api/categories           公开分类接口
+/api/admin/orders/export  管理员按当前筛选导出 CSV
 /api/payments/mock        模拟支付接口
 /api/jobs/expire-orders   关闭超时订单
 ```

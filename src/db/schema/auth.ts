@@ -4,6 +4,7 @@ import {
   boolean,
   check,
   index,
+  int,
   mysqlEnum,
   mysqlTable,
   timestamp,
@@ -13,6 +14,7 @@ import {
 } from "drizzle-orm/mysql-core";
 
 export const userRoles = ["USER", "ADMIN"] as const;
+export const userStatuses = ["ACTIVE", "FROZEN"] as const;
 
 export const users = mysqlTable(
   "users",
@@ -23,6 +25,7 @@ export const users = mysqlTable(
     emailVerified: boolean("email_verified").notNull().default(false),
     image: varchar("image", { length: 500 }),
     role: mysqlEnum("role", userRoles).notNull().default("USER"),
+    status: mysqlEnum("status", userStatuses).notNull().default("ACTIVE"),
     membershipLevel: tinyint("membership_level", {
       unsigned: true,
     })
@@ -41,10 +44,35 @@ export const users = mysqlTable(
   (table) => [
     uniqueIndex("users_email_unique").on(table.email),
     index("users_role_idx").on(table.role),
+    index("users_status_idx").on(table.status),
     check(
       "users_membership_level_check",
       sql`${table.membershipLevel} between 0 and 3`,
     ),
+  ],
+);
+
+export const rateLimits = mysqlTable("rate_limits", {
+  id: int("id", { unsigned: true }).autoincrement().primaryKey(),
+  key: varchar("key", { length: 255 }).notNull(),
+  count: int("count", { unsigned: true }).notNull(),
+  lastRequest: bigint("last_request", { mode: "number", unsigned: true }).notNull(),
+}, (table) => [uniqueIndex("rate_limits_key_unique").on(table.key)]);
+
+export const auditLogs = mysqlTable(
+  "audit_logs",
+  {
+    id: int("id", { unsigned: true }).autoincrement().primaryKey(),
+    operatorUserId: varchar("operator_user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "restrict" }),
+    action: varchar("action", { length: 100 }).notNull(),
+    targetType: varchar("target_type", { length: 100 }).notNull(),
+    targetId: varchar("target_id", { length: 100 }).notNull(),
+    summary: varchar("summary", { length: 1000 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("audit_logs_operator_created_idx").on(table.operatorUserId, table.createdAt),
+    index("audit_logs_target_created_idx").on(table.targetType, table.targetId, table.createdAt),
   ],
 );
 

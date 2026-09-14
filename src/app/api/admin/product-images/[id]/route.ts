@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/server/admin/auth";
 import { productImageRepository } from "@/server/repositories/product-image-repository";
 import { createProductImageService } from "@/server/services/product-image-service";
+import { auditService } from "@/server/audit";
 
 const service = createProductImageService(productImageRepository);
 
@@ -26,6 +27,7 @@ export async function DELETE(_request: Request, context: ImageRouteContext) {
   revalidatePath(`/admin/products/${result.image.productId}/edit`);
   revalidatePath("/", "page");
   revalidatePath("/products/[slug]", "page");
+  await auditService.record(await getAdminSession(), { action: "PRODUCT_IMAGE_DELETE", targetType: "PRODUCT_IMAGE", targetId: String(id), summary: "删除商品图片" }).catch(() => undefined);
   return Response.json({ data: result.image });
 }
 
@@ -43,6 +45,7 @@ export async function PATCH(request: Request, context: ImageRouteContext) {
     revalidatePath(`/admin/products/${result.image.productId}/edit`);
     revalidatePath("/", "page");
     revalidatePath("/products/[slug]", "page");
+    await auditService.record(await getAdminSession(), { action: input.isPrimary === true ? "PRODUCT_IMAGE_PRIMARY" : "PRODUCT_IMAGE_REORDER", targetType: "PRODUCT_IMAGE", targetId: String(id), summary: "更新商品图片" }).catch(() => undefined);
     return Response.json({ data: result.image });
   } catch {
     return Response.json({ error: { code: "INVALID_INPUT", message: "图片更新内容不正确" } }, { status: 400 });

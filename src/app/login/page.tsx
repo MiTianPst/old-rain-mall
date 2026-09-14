@@ -14,6 +14,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           登录后可以保存购物车，并继续完成结算。
         </p>
         <AuthForm mode="login" nextPath={nextPath} />
+        <p className="mt-4 text-center text-sm"><a href="/forgot-password" className="text-amber-800 hover:underline">忘记密码？</a></p>
       </section>
     </main>
   );

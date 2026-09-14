@@ -49,6 +49,7 @@ export function createCartService(repository: CartRepository) {
       userId: string | null;
       variantId: number;
       quantity: number;
+      userStatus?: "ACTIVE" | "FROZEN";
     }) {
       if (!input.userId) {
         return {
@@ -56,6 +57,9 @@ export function createCartService(repository: CartRepository) {
           code: "UNAUTHORIZED" as const,
           message: "请先登录后再加入购物车",
         };
+      }
+      if (input.userStatus === "FROZEN") {
+        return { ok: false as const, code: "ACCOUNT_FROZEN" as const, message: "账号已被冻结，暂时无法执行此操作" };
       }
 
       if (!Number.isSafeInteger(input.variantId) || input.variantId <= 0) {
