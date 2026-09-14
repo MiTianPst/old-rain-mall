@@ -7,9 +7,11 @@ import { ProductVisual } from "@/features/catalog/product-visual";
 import { VariantSelection } from "@/features/catalog/variant-selection";
 import { FavoriteButton } from "@/features/engagement/favorite-button";
 import { ProductViewTracker } from "@/features/engagement/product-view-tracker";
+import { ReviewList } from "@/features/review/review-list";
 import { getCurrentSession } from "@/server/auth/session";
 import { catalogService } from "@/server/catalog";
 import { engagementService } from "@/server/engagement";
+import { reviewService } from "@/server/review";
 
 import { getProductImageUrl } from "@/features/catalog/image";
 
@@ -36,6 +38,7 @@ export default async function ProductDetailPage({
     getCurrentSession(),
   ]);
   if (!product) notFound();
+  const reviews = await reviewService.listPublic(product.id);
   const favoriteProductIds = await engagementService.listFavoriteProductIds(
     session?.user.id ?? null,
     [product.id],
@@ -134,6 +137,7 @@ export default async function ProductDetailPage({
           </section>
         </div>
       </div>
+      <ReviewList reviews={reviews} />
     </main>
   );
 }

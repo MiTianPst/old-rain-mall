@@ -31,6 +31,7 @@ export type OrderRecord = {
   shipment: ShipmentRecord | null;
   afterSale: AfterSaleRecord | null;
   items: Array<{
+    id: number;
     productId: number;
     variantId: number;
     productName: string;

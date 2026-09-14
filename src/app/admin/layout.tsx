@@ -12,6 +12,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
             <Link href="/admin/categories" className="block rounded-xl px-3 py-2.5 hover:bg-stone-800">分类管理</Link>
             <Link href="/admin/orders" className="block rounded-xl px-3 py-2.5 hover:bg-stone-800">订单管理</Link>
             <Link href="/admin/users" className="block rounded-xl px-3 py-2.5 hover:bg-stone-800">用户与会员</Link>
+            <Link href="/admin/reviews" className="block rounded-xl px-3 py-2.5 hover:bg-stone-800">评价审核</Link>
             <Link href="/admin/audit-logs" className="block rounded-xl px-3 py-2.5 hover:bg-stone-800">操作审计</Link>
           </nav>
           <Link href="/" className="mt-6 block border-t border-stone-700 px-3 pt-5 text-sm text-stone-400 hover:text-amber-300">← 返回商城</Link>

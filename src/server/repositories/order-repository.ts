@@ -66,6 +66,7 @@ async function loadOrderItems(orderIds: number[]) {
   const rows = await db
     .select({
       orderId: orderItems.orderId,
+      id: orderItems.id,
       productId: orderItems.productId,
       variantId: orderItems.variantId,
       productName: orderItems.productName,
@@ -84,6 +85,7 @@ async function loadOrderItems(orderIds: number[]) {
   for (const row of rows) {
     const items = grouped.get(row.orderId) ?? [];
     items.push({
+      id: row.id,
       productId: row.productId,
       variantId: row.variantId,
       productName: row.productName,
