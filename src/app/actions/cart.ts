@@ -59,6 +59,7 @@ export async function addToCartAction(
   }
 
   revalidatePath("/cart");
+  revalidatePath("/");
   return { status: "SUCCESS", message: result.message };
 }
 

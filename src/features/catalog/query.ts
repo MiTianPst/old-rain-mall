@@ -40,5 +40,5 @@ export function buildCatalogHref(input: CatalogHrefInput) {
   if (input.page > 1) parameters.set("page", String(input.page));
 
   const query = parameters.toString();
-  return query ? `/?${query}` : "/";
+  return query ? `/?${query}#catalog` : "/#catalog";
 }

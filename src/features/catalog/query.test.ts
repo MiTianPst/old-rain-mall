@@ -36,7 +36,7 @@ test("非法页码会返回可识别的校验错误", () => {
 test("分页链接保留筛选并省略空参数", () => {
   assert.equal(
     buildCatalogHref({ search: "雨 伞", category: "travel", page: 2 }),
-    "/?search=%E9%9B%A8+%E4%BC%9E&category=travel&page=2",
+    "/?search=%E9%9B%A8+%E4%BC%9E&category=travel&page=2#catalog",
   );
-  assert.equal(buildCatalogHref({ search: "", category: "", page: 1 }), "/");
+  assert.equal(buildCatalogHref({ search: "", category: "", page: 1 }), "/#catalog");
 });

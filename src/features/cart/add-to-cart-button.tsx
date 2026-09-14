@@ -17,12 +17,14 @@ type AddToCartButtonProps = {
   variantId: number;
   returnTo: string;
   disabled: boolean;
+  compact?: boolean;
 };
 
 export function AddToCartButton({
   variantId,
   returnTo,
   disabled,
+  compact = false,
 }: AddToCartButtonProps) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(
@@ -37,20 +39,22 @@ export function AddToCartButton({
   }, [router, state]);
 
   return (
-    <form action={formAction} className="mt-8">
+    <form action={formAction} className={compact ? "" : "mt-8"}>
       <input type="hidden" name="variantId" value={variantId} />
       <input type="hidden" name="quantity" value="1" />
       <input type="hidden" name="returnTo" value={returnTo} />
       <button
         type="submit"
         disabled={disabled || pending}
-        className="w-full rounded-full bg-stone-900 px-6 py-4 font-medium text-white transition hover:bg-amber-800 disabled:cursor-not-allowed disabled:bg-stone-300"
+        className={`w-full rounded-full bg-stone-900 font-medium text-white transition hover:bg-amber-800 disabled:cursor-not-allowed disabled:bg-stone-300 ${
+          compact ? "min-h-11 px-4 text-sm" : "px-6 py-4"
+        }`}
       >
         {disabled ? "暂时售罄" : pending ? "正在加入…" : "加入购物车"}
       </button>
       <p
         aria-live="polite"
-        className={`mt-3 min-h-6 text-center text-sm ${
+        className={`${compact ? "mt-2 min-h-5 text-xs" : "mt-3 min-h-6 text-sm"} text-center ${
           state.status === "SUCCESS" ? "text-emerald-700" : "text-rose-700"
         }`}
       >
