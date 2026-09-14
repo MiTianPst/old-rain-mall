@@ -27,7 +27,7 @@ const reviewSelection = {
 };
 
 export const reviewRepository: ReviewRepository = {
-  async createReview({ userId, productId, orderItemId, rating, content, now }) {
+  async createReview({ userId, productId, orderItemId, rating, content, status, now }) {
     return db.transaction(async (transaction) => {
       const [eligibleItem] = await transaction
         .select({
@@ -76,7 +76,7 @@ export const reviewRepository: ReviewRepository = {
           orderItemId,
           rating,
           content,
-          status: "PENDING",
+          status,
           createdAt: now,
           updatedAt: now,
         })

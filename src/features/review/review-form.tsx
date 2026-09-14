@@ -1,14 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { createReviewAction, type ReviewActionState } from "@/app/actions/review";
+import { isRatingHighlighted } from "./rating-stars";
 
 const initialState: ReviewActionState = { status: "IDLE", message: "" };
 
 export function ReviewForm({ orderNo, productId, orderItemId, returnTo }: { orderNo: string; productId: number; orderItemId: number; returnTo: string }) {
   const router = useRouter();
+  const [selectedRating, setSelectedRating] = useState(5);
   const [state, formAction, pending] = useActionState(createReviewAction, initialState);
 
   useEffect(() => {
@@ -24,10 +26,17 @@ export function ReviewForm({ orderNo, productId, orderItemId, returnTo }: { orde
       <fieldset>
         <legend className="text-sm font-medium text-stone-700">给商品打分</legend>
         <div className="mt-2 flex gap-2" role="radiogroup" aria-label="商品评分">
-          {[5, 4, 3, 2, 1].map((rating) => (
-            <label key={rating} className="cursor-pointer">
-              <input className="peer sr-only" type="radio" name="rating" value={rating} defaultChecked={rating === 5} />
-              <span className="text-2xl text-stone-300 transition peer-checked:text-amber-500">★</span>
+          {[1, 2, 3, 4, 5].map((rating) => (
+            <label key={rating} className="cursor-pointer" title={`${rating} 星`}>
+              <input
+                className="sr-only"
+                type="radio"
+                name="rating"
+                value={rating}
+                checked={selectedRating === rating}
+                onChange={() => setSelectedRating(rating)}
+              />
+              <span className={`text-2xl transition ${isRatingHighlighted(rating, selectedRating) ? "text-amber-500" : "text-stone-300"}`}>★</span>
               <span className="sr-only">{rating} 星</span>
             </label>
           ))}

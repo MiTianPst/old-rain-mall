@@ -45,6 +45,30 @@ test("评价服务映射资格与重复评价错误", async () => {
   );
 });
 
+test("新评价提交时直接使用公开状态", async () => {
+  let receivedStatus = "";
+  const service = createReviewService(
+    repository({
+      createReview: async (input) => {
+        receivedStatus = input.status;
+        return { status: "CREATED", id: 3 };
+      },
+    }),
+  );
+
+  const result = await service.createReview({
+    userId: "u1",
+    userStatus: "ACTIVE",
+    productId: 1,
+    orderItemId: 2,
+    rating: 5,
+    content: "很好用",
+  });
+
+  assert.equal(receivedStatus, "APPROVED");
+  assert.deepEqual(result, { ok: true, reviewId: 3, message: "评价已发布" });
+});
+
 test("评价审核服务只允许管理员更新审核状态", async () => {
   const service = createReviewService(repository());
   assert.deepEqual(

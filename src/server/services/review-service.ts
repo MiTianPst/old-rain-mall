@@ -39,6 +39,7 @@ export interface ReviewRepository {
     orderItemId: number;
     rating: number;
     content: string;
+    status: "APPROVED";
     now: Date;
   }): Promise<ReviewRepositoryCreateResult>;
   listPublic(productId: number): Promise<PublicReviewRecord[]>;
@@ -87,6 +88,7 @@ export function createReviewService(repository: ReviewRepository) {
         orderItemId: input.orderItemId,
         rating: input.rating,
         content: input.content,
+        status: "APPROVED",
         now: new Date(),
       });
       if (result.status === "NOT_ELIGIBLE") {
@@ -103,7 +105,7 @@ export function createReviewService(repository: ReviewRepository) {
           message: "你已经评价过该商品",
         };
       }
-      return { ok: true as const, reviewId: result.id, message: "评价已提交，审核通过后将公开展示" };
+      return { ok: true as const, reviewId: result.id, message: "评价已发布" };
     },
 
     listPublic(productId: number) {
