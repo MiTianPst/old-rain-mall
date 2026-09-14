@@ -33,6 +33,9 @@ export type ProductRecord = {
   summary: string | null;
   description: string | null;
   priceCents: number;
+  compareAtPriceCents?: number | null;
+  promotionLabel?: string | null;
+  salesCount?: number;
   stock: number;
   coverUrl: string | null;
   category: CategorySummary;
@@ -46,7 +49,13 @@ export type CategoryRecord = CategorySummary & {
   productCount: number;
 };
 
-export type ProductCardDto = Omit<ProductRecord, "description">;
+export type ProductCardDto = Omit<ProductRecord, "description" | "variants" | "images" | "defaultVariant"> & {
+  compareAtPriceCents: number | null;
+  promotionLabel: string | null;
+  salesCount: number;
+  defaultVariantId: number | null;
+  activeVariantCount: number;
+};
 export type ProductDetailDto = ProductRecord;
 export type CategoryDto = CategoryRecord;
 
@@ -80,15 +89,28 @@ export function createCatalogService(repository: CatalogRepository) {
       return {
         data: rows.map((row) => {
           const product = normalizeProduct(row);
+          const activeVariants = product.variants?.filter(
+            (variant) => variant.status === "ACTIVE",
+          ) ?? [];
           return {
             id: product.id,
             slug: product.slug,
             name: product.name,
             summary: product.summary,
             priceCents: product.priceCents,
+            compareAtPriceCents:
+              product.compareAtPriceCents !== null &&
+              product.compareAtPriceCents !== undefined &&
+              product.compareAtPriceCents > product.priceCents
+                ? product.compareAtPriceCents
+                : null,
+            promotionLabel: product.promotionLabel ?? null,
+            salesCount: product.salesCount ?? 0,
             stock: product.stock,
             coverUrl: product.coverUrl,
             category: product.category,
+            defaultVariantId: product.defaultVariant?.id ?? null,
+            activeVariantCount: activeVariants.length,
           };
         }),
         pagination: {

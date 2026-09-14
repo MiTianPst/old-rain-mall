@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, exists, like, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, exists, like, or, sql } from "drizzle-orm";
 
 import type { CatalogQuery } from "@/features/catalog/query";
 import { db } from "@/db";
@@ -52,6 +52,17 @@ const productSelection = {
   summary: products.summary,
   description: products.description,
   priceCents: products.priceCents,
+  compareAtPriceCents: products.compareAtPriceCents,
+  promotionLabel: products.promotionLabel,
+  salesCount: sql<number>`(
+    select coalesce(sum(oi.quantity), 0)
+    from order_items oi
+    inner join orders o on o.id = oi.order_id
+    inner join payments pay on pay.order_id = o.id
+    where oi.product_id = ${products.id}
+      and pay.status = 'SUCCESS'
+      and o.status not in ('CANCELLED', 'CLOSED', 'REFUNDED')
+  )`.mapWith(Number),
   stock: products.stock,
   coverUrl: products.coverUrl,
   category: {
@@ -137,6 +148,17 @@ export const catalogRepository: CatalogRepository = {
         and(
           eq(products.categoryId, categories.id),
           eq(products.status, "ACTIVE"),
+          exists(
+            db
+              .select({ id: productVariants.id })
+              .from(productVariants)
+              .where(
+                and(
+                  eq(productVariants.productId, products.id),
+                  eq(productVariants.status, "ACTIVE"),
+                ),
+              ),
+          ),
         ),
       )
       .where(eq(categories.status, "ACTIVE"))
@@ -165,7 +187,9 @@ async function hydrateProduct(
   return {
     ...row,
     priceCents: defaultVariant?.priceCents ?? row.priceCents,
-    stock: defaultVariant?.stock ?? row.stock,
+    stock: variants
+      .filter((variant) => variant.status === "ACTIVE")
+      .reduce((total, variant) => total + variant.stock, 0),
     coverUrl: primaryImage?.url ?? row.coverUrl,
     variants,
     images,
@@ -179,6 +203,9 @@ type ProductBaseRow = {
   summary: string | null;
   description: string | null;
   priceCents: number;
+  compareAtPriceCents: number | null;
+  promotionLabel: string | null;
+  salesCount: number;
   stock: number;
   coverUrl: string | null;
   category: {
