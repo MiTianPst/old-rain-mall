@@ -65,6 +65,7 @@ function createRepository(
     countProducts: async () => 10,
     findProductById: async () => productRow,
     findProductBySlug: async () => productRow,
+    listRelatedProducts: async () => [],
     listCategories: async () => [
       {
         id: 2,
@@ -201,4 +202,21 @@ test("分类 DTO 返回在售商品数量", async () => {
       productCount: 3,
     },
   ]);
+});
+
+test("相关商品服务返回标准卡片并限制推荐数量", async () => {
+  const service = createCatalogService(
+    createRepository({ listRelatedProducts: async () => [productRow] }),
+  );
+
+  const related = await service.listRelatedProducts({
+    productId: 7,
+    categoryId: 2,
+    limit: 4,
+  });
+
+  assert.equal(related.length, 1);
+  assert.equal(related[0]?.id, 7);
+  assert.equal(related[0]?.defaultVariantId, 11);
+  assert.equal(related[0]?.activeVariantCount, 1);
 });

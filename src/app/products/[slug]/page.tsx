@@ -4,10 +4,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ProductVisual } from "@/features/catalog/product-visual";
+import { RelatedProducts } from "@/features/catalog/related-products";
 import { VariantSelection } from "@/features/catalog/variant-selection";
 import { FavoriteButton } from "@/features/engagement/favorite-button";
 import { ProductViewTracker } from "@/features/engagement/product-view-tracker";
 import { ReviewList } from "@/features/review/review-list";
+import { type MembershipLevel } from "@/lib/membership";
 import { getCurrentSession } from "@/server/auth/session";
 import { catalogService } from "@/server/catalog";
 import { engagementService } from "@/server/engagement";
@@ -38,7 +40,11 @@ export default async function ProductDetailPage({
     getCurrentSession(),
   ]);
   if (!product) notFound();
-  const reviews = await reviewService.listPublic(product.id);
+  const [reviews, relatedProducts] = await Promise.all([
+    reviewService.listPublic(product.id),
+    catalogService.listRelatedProducts({ productId: product.id, categoryId: product.category.id, limit: 4 }),
+  ]);
+  const membershipLevel = (session?.user.membershipLevel ?? 0) as MembershipLevel;
   const favoriteProductIds = await engagementService.listFavoriteProductIds(
     session?.user.id ?? null,
     [product.id],
@@ -138,6 +144,7 @@ export default async function ProductDetailPage({
         </div>
       </div>
       <ReviewList reviews={reviews} />
+      <RelatedProducts products={relatedProducts} membershipLevel={membershipLevel} isAuthenticated={Boolean(session)} />
     </main>
   );
 }

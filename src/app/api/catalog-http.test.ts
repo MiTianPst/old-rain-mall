@@ -34,6 +34,7 @@ function fakeService(overrides: Partial<CatalogService> = {}): CatalogService {
     getProductById: async () => detail,
     getProductBySlug: async () => detail,
     listCategories: async () => [],
+    listRelatedProducts: async () => [],
     ...overrides,
   };
 }

@@ -79,6 +79,11 @@ export interface CatalogRepository {
   findProductById(id: number): Promise<ProductRecord | null>;
   findProductBySlug(slug: string): Promise<ProductRecord | null>;
   listCategories(): Promise<CategoryRecord[]>;
+  listRelatedProducts(input: {
+    productId: number;
+    categoryId: number;
+    limit: number;
+  }): Promise<ProductRecord[]>;
 }
 
 export function createCatalogService(repository: CatalogRepository) {
@@ -90,32 +95,7 @@ export function createCatalogService(repository: CatalogRepository) {
       ]);
 
       return {
-        data: rows.map((row) => {
-          const product = normalizeProduct(row);
-          const activeVariants = product.variants?.filter(
-            (variant) => variant.status === "ACTIVE",
-          ) ?? [];
-          return {
-            id: product.id,
-            slug: product.slug,
-            name: product.name,
-            summary: product.summary,
-            priceCents: product.priceCents,
-            compareAtPriceCents:
-              product.compareAtPriceCents !== null &&
-              product.compareAtPriceCents !== undefined &&
-              product.compareAtPriceCents > product.priceCents
-                ? product.compareAtPriceCents
-                : null,
-            promotionLabel: product.promotionLabel ?? null,
-            salesCount: product.salesCount ?? 0,
-            stock: product.stock,
-            coverUrl: product.coverUrl,
-            category: product.category,
-            defaultVariantId: product.defaultVariant?.id ?? null,
-            activeVariantCount: activeVariants.length,
-          };
-        }),
+        data: rows.map(toProductCardDto),
         pagination: {
           page: query.page,
           pageSize: PRODUCT_PAGE_SIZE,
@@ -146,10 +126,56 @@ export function createCatalogService(repository: CatalogRepository) {
     listCategories(): Promise<CategoryDto[]> {
       return repository.listCategories();
     },
+
+    async listRelatedProducts(input: {
+      productId: number;
+      categoryId: number;
+      limit?: number;
+    }) {
+      const limit = Number.isSafeInteger(input.limit) && input.limit && input.limit > 0
+        ? Math.min(input.limit, 4)
+        : 4;
+      const rows = await repository.listRelatedProducts({
+        productId: input.productId,
+        categoryId: input.categoryId,
+        limit,
+      });
+      return rows
+        .filter((row) => row.id !== input.productId)
+        .slice(0, limit)
+        .map(toProductCardDto);
+    },
   };
 }
 
 export type CatalogService = ReturnType<typeof createCatalogService>;
+
+export function toProductCardDto(row: ProductRecord): ProductCardDto {
+  const product = normalizeProduct(row);
+  const activeVariants = product.variants?.filter(
+    (variant) => variant.status === "ACTIVE",
+  ) ?? [];
+  return {
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    summary: product.summary,
+    priceCents: product.priceCents,
+    compareAtPriceCents:
+      product.compareAtPriceCents !== null &&
+      product.compareAtPriceCents !== undefined &&
+      product.compareAtPriceCents > product.priceCents
+        ? product.compareAtPriceCents
+        : null,
+    promotionLabel: product.promotionLabel ?? null,
+    salesCount: product.salesCount ?? 0,
+    stock: product.stock,
+    coverUrl: product.coverUrl,
+    category: product.category,
+    defaultVariantId: product.defaultVariant?.id ?? null,
+    activeVariantCount: activeVariants.length,
+  };
+}
 
 function normalizeProduct(product: ProductRecord): ProductDetailDto {
   const variants = (product.variants ?? []).map(normalizeVariant);

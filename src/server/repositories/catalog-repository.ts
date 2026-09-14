@@ -9,6 +9,7 @@ import {
   exists,
   gt,
   like,
+  ne,
   or,
   sql,
 } from "drizzle-orm";
@@ -226,6 +227,24 @@ export const catalogRepository: CatalogRepository = {
         categories.sortOrder,
       )
       .orderBy(categories.sortOrder, categories.id);
+  },
+
+  async listRelatedProducts({ productId, categoryId, limit }) {
+    const rows = await db
+      .select(productSelection)
+      .from(products)
+      .innerJoin(categories, eq(products.categoryId, categories.id))
+      .where(
+        and(
+          publicProductWhere(),
+          eq(products.categoryId, categoryId),
+          ne(products.id, productId),
+        ),
+      )
+      .orderBy(desc(salesCount), desc(products.createdAt), desc(products.id))
+      .limit(Math.min(Math.max(limit, 1), 4));
+
+    return Promise.all(rows.map((row) => hydrateProduct(row, false)));
   },
 };
 
