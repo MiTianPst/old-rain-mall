@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title">
+  <title id="title">暖茶随行杯</title>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffedd5"/><stop offset="1" stop-color="#fed7aa"/></linearGradient></defs>
+  <rect width="1200" height="900" rx="40" fill="url(#bg)"/><circle cx="970" cy="160" r="170" fill="#fff" opacity=".4"/>
+  <path d="M430 270h340l-32 410q-8 68-76 68H538q-68 0-76-68Z" fill="#b45309"/><rect x="420" y="240" width="360" height="70" rx="26" fill="#78350f"/><path d="M500 215q35-130 70 0m55 0q35-130 70 0" fill="none" stroke="#fff" stroke-width="12" opacity=".65"/>
+  <text x="80" y="120" fill="#9a3412" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="32" letter-spacing="8">旧雨精选 · 生活好物</text><text x="80" y="785" fill="#431407" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="52" font-weight="700">暖茶随行杯</text>
+</svg>

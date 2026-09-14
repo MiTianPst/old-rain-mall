@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title">
+  <title id="title">远山 27 英寸 4K 显示器</title>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d1fae5"/><stop offset="1" stop-color="#a7f3d0"/></linearGradient><linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#064e3b"/><stop offset="1" stop-color="#14b8a6"/></linearGradient></defs>
+  <rect width="1200" height="900" rx="40" fill="url(#bg)"/><circle cx="970" cy="170" r="190" fill="#fff" opacity=".45"/>
+  <rect x="255" y="205" width="690" height="400" rx="30" fill="#065f46"/><rect x="290" y="240" width="620" height="330" rx="16" fill="url(#screen)"/><path d="M365 500q150-235 300-45t175-120" fill="none" stroke="#a7f3d0" stroke-width="22" opacity=".75"/><path d="M575 605v90m-100 0h200" stroke="#065f46" stroke-width="24" stroke-linecap="round"/>
+  <text x="80" y="120" fill="#047857" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="32" letter-spacing="8">旧雨精选 · 电脑办公</text><text x="80" y="785" fill="#064e3b" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="52" font-weight="700">远山 27 英寸 4K 显示器</text>
+</svg>

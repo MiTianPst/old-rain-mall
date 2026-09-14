@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title">
+  <title id="title">晨曦平板 Air</title>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fef3c7"/><stop offset="1" stop-color="#fde68a"/></linearGradient><linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f97316"/><stop offset="1" stop-color="#facc15"/></linearGradient></defs>
+  <rect width="1200" height="900" rx="40" fill="url(#bg)"/><circle cx="970" cy="170" r="190" fill="#fff" opacity=".4"/>
+  <rect x="300" y="205" width="600" height="410" rx="36" fill="#92400e" transform="rotate(-5 600 410)"/><rect x="330" y="235" width="540" height="350" rx="22" fill="url(#screen)" transform="rotate(-5 600 410)"/><circle cx="600" cy="405" r="86" fill="#fff" opacity=".35"/><path d="M540 405h120m-60-60v120" stroke="#fff" stroke-width="18" stroke-linecap="round" opacity=".8" transform="rotate(-5 600 410)"/>
+  <text x="80" y="120" fill="#b45309" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="32" letter-spacing="8">旧雨精选 · 手机数码</text><text x="80" y="785" fill="#78350f" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="52" font-weight="700">晨曦平板 Air</text>
+</svg>

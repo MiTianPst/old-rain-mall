@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title">
+  <title id="title">静野降噪耳机 Pro</title>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e0e7ff"/><stop offset="1" stop-color="#c7d2fe"/></linearGradient></defs>
+  <rect width="1200" height="900" rx="40" fill="url(#bg)"/><circle cx="970" cy="170" r="190" fill="#fff" opacity=".4"/>
+  <path d="M385 480V355a215 215 0 0 1 430 0v125" fill="none" stroke="#312e81" stroke-width="58" stroke-linecap="round"/><rect x="325" y="440" width="155" height="240" rx="70" fill="#4338ca"/><rect x="720" y="440" width="155" height="240" rx="70" fill="#4338ca"/><circle cx="402" cy="545" r="35" fill="#c4b5fd"/><circle cx="798" cy="545" r="35" fill="#c4b5fd"/>
+  <text x="80" y="120" fill="#3730a3" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="32" letter-spacing="8">旧雨精选 · 手机数码</text><text x="80" y="785" fill="#1e1b4b" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="52" font-weight="700">静野降噪耳机 Pro</text>
+</svg>

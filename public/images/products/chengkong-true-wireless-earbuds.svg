@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title">
+  <title id="title">澄空真无线耳机</title>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fce7f3"/><stop offset="1" stop-color="#fbcfe8"/></linearGradient></defs>
+  <rect width="1200" height="900" rx="40" fill="url(#bg)"/><circle cx="970" cy="170" r="190" fill="#fff" opacity=".42"/>
+  <rect x="430" y="425" width="340" height="220" rx="100" fill="#be185d"/><rect x="480" y="465" width="240" height="125" rx="60" fill="#fdf2f8"/><path d="M500 330q0-90 75-90v160q-75 0-75-70m200 0q0-90-75-90v160q75 0 75-70" fill="#db2777"/><circle cx="575" cy="285" r="20" fill="#fce7f3"/><circle cx="625" cy="285" r="20" fill="#fce7f3"/>
+  <text x="80" y="120" fill="#be185d" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="32" letter-spacing="8">旧雨精选 · 手机数码</text><text x="80" y="785" fill="#831843" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="52" font-weight="700">澄空真无线耳机</text>
+</svg>

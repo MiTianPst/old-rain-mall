@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title">
+  <title id="title">轻羽 14 英寸轻薄本</title>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f1f5f9"/><stop offset="1" stop-color="#cbd5e1"/></linearGradient><linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0f172a"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
+  <rect width="1200" height="900" rx="40" fill="url(#bg)"/><circle cx="970" cy="170" r="190" fill="#fff" opacity=".45"/>
+  <path d="M275 565 350 270q8-30 42-30h416q34 0 42 30l75 295Z" fill="#475569"/><rect x="380" y="295" width="440" height="230" rx="10" fill="url(#screen)"/><path d="M180 590h840l-55 75H235Z" fill="#1e293b"/><rect x="520" y="615" width="160" height="14" rx="7" fill="#94a3b8"/>
+  <text x="80" y="120" fill="#334155" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="32" letter-spacing="8">旧雨精选 · 电脑办公</text><text x="80" y="785" fill="#0f172a" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="52" font-weight="700">轻羽 14 英寸轻薄本</text>
+</svg>

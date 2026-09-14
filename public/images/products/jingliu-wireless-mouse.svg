@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title">
+  <title id="title">静流无线鼠标</title>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fef9c3"/><stop offset="1" stop-color="#fde68a"/></linearGradient></defs>
+  <rect width="1200" height="900" rx="40" fill="url(#bg)"/><circle cx="970" cy="170" r="190" fill="#fff" opacity=".45"/>
+  <path d="M600 250c-150 0-220 105-220 250s70 250 220 250 220-105 220-250-70-250-220-250Z" fill="#854d0e"/><path d="M600 260v220" stroke="#fef3c7" stroke-width="18"/><rect x="570" y="320" width="60" height="110" rx="30" fill="#fbbf24"/><path d="M500 520q100 80 200 0" fill="none" stroke="#fef3c7" stroke-width="15" opacity=".7"/>
+  <text x="80" y="120" fill="#a16207" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="32" letter-spacing="8">旧雨精选 · 电脑办公</text><text x="80" y="785" fill="#713f12" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="52" font-weight="700">静流无线鼠标</text>
+</svg>

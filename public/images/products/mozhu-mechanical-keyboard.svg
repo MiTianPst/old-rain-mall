@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title">
+  <title id="title">墨竹机械键盘</title>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e0e7ff"/><stop offset="1" stop-color="#c7d2fe"/></linearGradient></defs>
+  <rect width="1200" height="900" rx="40" fill="url(#bg)"/><circle cx="970" cy="170" r="190" fill="#fff" opacity=".45"/>
+  <rect x="240" y="300" width="720" height="300" rx="36" fill="#1e1b4b" transform="rotate(-5 600 450)"/><g fill="#818cf8" transform="rotate(-5 600 450)"><rect x="300" y="360" width="90" height="55" rx="10"/><rect x="410" y="360" width="90" height="55" rx="10"/><rect x="520" y="360" width="90" height="55" rx="10"/><rect x="630" y="360" width="90" height="55" rx="10"/><rect x="740" y="360" width="90" height="55" rx="10"/><rect x="300" y="440" width="90" height="55" rx="10"/><rect x="410" y="440" width="200" height="55" rx="10"/><rect x="630" y="440" width="200" height="55" rx="10"/><rect x="380" y="520" width="450" height="55" rx="10"/></g>
+  <text x="80" y="120" fill="#4338ca" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="32" letter-spacing="8">旧雨精选 · 电脑办公</text><text x="80" y="785" fill="#1e1b4b" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="52" font-weight="700">墨竹机械键盘</text>
+</svg>

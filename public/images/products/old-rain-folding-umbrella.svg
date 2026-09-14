@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title">
+  <title id="title">旧雨折叠伞</title>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#dbeafe"/><stop offset="1" stop-color="#bae6fd"/></linearGradient></defs>
+  <rect width="1200" height="900" rx="40" fill="url(#bg)"/><circle cx="970" cy="170" r="180" fill="#fff" opacity=".35"/>
+  <path d="M285 585 Q600 260 915 585 Q600 500 285 585Z" fill="#2563eb"/><path d="M600 535V735q0 74-58 74" fill="none" stroke="#334155" stroke-width="20" stroke-linecap="round"/><path d="M542 809q95 22 105-54" fill="none" stroke="#334155" stroke-width="20" stroke-linecap="round"/>
+  <text x="80" y="120" fill="#1e3a8a" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="32" letter-spacing="8">旧雨精选 · 雨具出行</text><text x="80" y="785" fill="#172554" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="52" font-weight="700">旧雨折叠伞</text>
+</svg>
