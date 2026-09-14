@@ -83,6 +83,10 @@ test("商品列表返回固定每页 9 条的分页 DTO", async () => {
   const result = await service.listProducts({
     search: "雨伞",
     category: "travel",
+    minPrice: null,
+    maxPrice: null,
+    inStock: false,
+    sort: "newest",
     page: 2,
   });
 
@@ -105,7 +109,14 @@ test("商品列表返回固定每页 9 条的分页 DTO", async () => {
       },
     ],
     pagination: { page: 2, pageSize: 9, total: 10, totalPages: 2 },
-    filters: { search: "雨伞", category: "travel" },
+    filters: {
+      search: "雨伞",
+      category: "travel",
+      minPrice: null,
+      maxPrice: null,
+      inStock: false,
+      sort: "newest",
+    },
   });
 });
 

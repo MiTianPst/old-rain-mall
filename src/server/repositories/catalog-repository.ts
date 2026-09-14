@@ -1,6 +1,17 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, exists, like, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  exists,
+  gt,
+  like,
+  or,
+  sql,
+} from "drizzle-orm";
 
 import type { CatalogQuery } from "@/features/catalog/query";
 import { db } from "@/db";
@@ -17,7 +28,29 @@ import type {
   ProductVariantDto,
 } from "@/server/services/catalog-service";
 
-function publicProductWhere(query?: Pick<CatalogQuery, "search" | "category">) {
+const minimumActivePrice = sql<number>`(
+  select min(pv.price_cents)
+  from product_variants pv
+  where pv.product_id = ${products.id}
+    and pv.status = 'ACTIVE'
+)`.mapWith(Number);
+
+const salesCount = sql<number>`(
+  select coalesce(sum(oi.quantity), 0)
+  from order_items oi
+  inner join orders o on o.id = oi.order_id
+  inner join payments pay on pay.order_id = o.id
+  where oi.product_id = ${products.id}
+    and pay.status = 'SUCCESS'
+    and o.status not in ('CANCELLED', 'CLOSED', 'REFUNDED')
+)`.mapWith(Number);
+
+function publicProductWhere(
+  query?: Pick<
+    CatalogQuery,
+    "search" | "category" | "minPrice" | "maxPrice" | "inStock"
+  >,
+) {
   const searchPattern = query?.search ? `%${query.search}%` : undefined;
 
   return and(
@@ -34,6 +67,26 @@ function publicProductWhere(query?: Pick<CatalogQuery, "search" | "category">) {
           ),
         ),
     ),
+    query?.inStock
+      ? exists(
+          db
+            .select({ id: productVariants.id })
+            .from(productVariants)
+            .where(
+              and(
+                eq(productVariants.productId, products.id),
+                eq(productVariants.status, "ACTIVE"),
+                gt(productVariants.stock, 0),
+              ),
+            ),
+        )
+      : undefined,
+    query?.minPrice !== null && query?.minPrice !== undefined
+      ? sql`${minimumActivePrice} >= ${query.minPrice * 100}`
+      : undefined,
+    query?.maxPrice !== null && query?.maxPrice !== undefined
+      ? sql`${minimumActivePrice} <= ${query.maxPrice * 100}`
+      : undefined,
     query?.category ? eq(categories.slug, query.category) : undefined,
     searchPattern
       ? or(
@@ -54,15 +107,7 @@ const productSelection = {
   priceCents: products.priceCents,
   compareAtPriceCents: products.compareAtPriceCents,
   promotionLabel: products.promotionLabel,
-  salesCount: sql<number>`(
-    select coalesce(sum(oi.quantity), 0)
-    from order_items oi
-    inner join orders o on o.id = oi.order_id
-    inner join payments pay on pay.order_id = o.id
-    where oi.product_id = ${products.id}
-      and pay.status = 'SUCCESS'
-      and o.status not in ('CANCELLED', 'CLOSED', 'REFUNDED')
-  )`.mapWith(Number),
+  salesCount,
   stock: products.stock,
   coverUrl: products.coverUrl,
   category: {
@@ -94,7 +139,18 @@ export const catalogRepository: CatalogRepository = {
       .from(products)
       .innerJoin(categories, eq(products.categoryId, categories.id))
       .where(publicProductWhere(query))
-      .orderBy(desc(products.createdAt), desc(products.id))
+      .orderBy(
+        query.sort === "price_asc"
+          ? asc(minimumActivePrice)
+          : query.sort === "price_desc"
+            ? desc(minimumActivePrice)
+            : query.sort === "sales"
+              ? desc(salesCount)
+              : desc(products.createdAt),
+        ...(query.sort === "sales"
+          ? [desc(products.createdAt), desc(products.id)]
+          : [desc(products.id)]),
+      )
       .limit(pageSize)
       .offset((query.page - 1) * pageSize);
 

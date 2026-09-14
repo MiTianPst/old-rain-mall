@@ -67,7 +67,10 @@ export type ProductListDto = {
     total: number;
     totalPages: number;
   };
-  filters: Pick<CatalogQuery, "search" | "category">;
+  filters: Pick<
+    CatalogQuery,
+    "search" | "category" | "minPrice" | "maxPrice" | "inStock" | "sort"
+  >;
 };
 
 export interface CatalogRepository {
@@ -119,7 +122,14 @@ export function createCatalogService(repository: CatalogRepository) {
           total,
           totalPages: Math.ceil(total / PRODUCT_PAGE_SIZE),
         },
-        filters: { search: query.search, category: query.category },
+        filters: {
+          search: query.search,
+          category: query.category,
+          minPrice: query.minPrice,
+          maxPrice: query.maxPrice,
+          inStock: query.inStock,
+          sort: query.sort,
+        },
       };
     },
 

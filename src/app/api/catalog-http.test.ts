@@ -22,7 +22,14 @@ function fakeService(overrides: Partial<CatalogService> = {}): CatalogService {
     listProducts: async (query) => ({
       data: [],
       pagination: { page: query.page, pageSize: 9, total: 0, totalPages: 0 },
-      filters: { search: query.search, category: query.category },
+      filters: {
+        search: query.search,
+        category: query.category,
+        minPrice: query.minPrice,
+        maxPrice: query.maxPrice,
+        inStock: query.inStock,
+        sort: query.sort,
+      },
     }),
     getProductById: async () => detail,
     getProductBySlug: async () => detail,
@@ -41,7 +48,14 @@ test("商品列表 API 解析筛选参数并返回分页结果", async () => {
   assert.deepEqual(await response.json(), {
     data: [],
     pagination: { page: 2, pageSize: 9, total: 0, totalPages: 0 },
-    filters: { search: "雨", category: "travel" },
+    filters: {
+      search: "雨",
+      category: "travel",
+      minPrice: null,
+      maxPrice: null,
+      inStock: false,
+      sort: "newest",
+    },
   });
 });
 
