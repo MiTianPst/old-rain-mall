@@ -21,8 +21,35 @@ const adminProductFormSchema = z.object({
   summary: optionalText(500, "商品摘要不能超过 500 个字符"),
   description: z.preprocess((value) => (value === null || (typeof value === "string" && value.trim() === "") ? undefined : value), z.string().trim().optional()),
   priceYuan: z.string().trim().refine((value) => yuanToCents(value) !== null, "请输入最多两位小数的有效价格"),
+  compareAtPriceYuan: optionalText(20, "商品原价格式不正确").refine(
+    (value) => value === undefined || yuanToCents(value) !== null,
+    "请输入最多两位小数的有效商品原价",
+  ),
+  isFeatured: z.boolean(),
+  featuredSort: z.preprocess(
+    (value) => (value === null || value === "" ? 0 : value),
+    z.coerce.number().int("推荐顺序必须是整数").min(0, "推荐顺序不能小于 0").max(9999, "推荐顺序不能大于 9999"),
+  ),
+  promotionLabel: optionalText(30, "促销标签不能超过 30 个字符"),
   status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"], "请选择有效商品状态"),
   coverUrl: z.preprocess((value) => (value === null || (typeof value === "string" && value.trim() === "") ? undefined : value), z.url("封面地址格式不正确").max(1000, "封面地址不能超过 1000 个字符").optional()),
+}).superRefine((value, context) => {
+  const priceCents = yuanToCents(value.priceYuan);
+  const compareAtPriceCents = value.compareAtPriceYuan
+    ? yuanToCents(value.compareAtPriceYuan)
+    : undefined;
+  if (
+    compareAtPriceCents !== undefined &&
+    compareAtPriceCents !== null &&
+    priceCents !== null &&
+    compareAtPriceCents <= priceCents
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["compareAtPriceYuan"],
+      message: "商品原价必须高于当前价格",
+    });
+  }
 });
 
 export type AdminProductInput = {
@@ -32,6 +59,10 @@ export type AdminProductInput = {
   summary?: string;
   description?: string;
   priceCents: number;
+  compareAtPriceCents?: number;
+  isFeatured: boolean;
+  featuredSort: number;
+  promotionLabel?: string;
   status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   coverUrl?: string;
 };
@@ -40,6 +71,8 @@ export function parseAdminProductFormData(formData: FormData) {
   const result = adminProductFormSchema.safeParse({
     categoryId: formData.get("categoryId"), name: formData.get("name"), slug: formData.get("slug"),
     summary: formData.get("summary"), description: formData.get("description"), priceYuan: formData.get("priceYuan"),
+    compareAtPriceYuan: formData.get("compareAtPriceYuan"), isFeatured: formData.get("isFeatured") === "on",
+    featuredSort: formData.get("featuredSort"), promotionLabel: formData.get("promotionLabel"),
     status: formData.get("status"), coverUrl: formData.get("coverUrl"),
   });
   if (!result.success) return { success: false as const, fieldErrors: result.error.flatten().fieldErrors };
@@ -49,6 +82,9 @@ export function parseAdminProductFormData(formData: FormData) {
       categoryId: result.data.categoryId, name: result.data.name, slug: result.data.slug,
       summary: result.data.summary, description: result.data.description,
       priceCents: yuanToCents(result.data.priceYuan)!,
+      compareAtPriceCents: result.data.compareAtPriceYuan ? yuanToCents(result.data.compareAtPriceYuan)! : undefined,
+      isFeatured: result.data.isFeatured, featuredSort: result.data.featuredSort,
+      promotionLabel: result.data.promotionLabel,
       status: result.data.status, coverUrl: result.data.coverUrl,
     } satisfies AdminProductInput,
   };

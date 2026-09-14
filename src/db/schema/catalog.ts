@@ -46,6 +46,10 @@ export const products = mysqlTable(
     summary: varchar("summary", { length: 500 }),
     description: text("description"),
     priceCents: int("price_cents", { unsigned: true }).notNull(),
+    compareAtPriceCents: int("compare_at_price_cents", { unsigned: true }),
+    isFeatured: boolean("is_featured").notNull().default(false),
+    featuredSort: int("featured_sort", { unsigned: true }).notNull().default(0),
+    promotionLabel: varchar("promotion_label", { length: 30 }),
     stock: int("stock", { unsigned: true }).notNull().default(0),
     status: mysqlEnum("status", productStatuses).notNull().default("DRAFT"),
     coverUrl: varchar("cover_url", { length: 1000 }),
@@ -60,6 +64,11 @@ export const products = mysqlTable(
       table.status,
     ),
     index("products_status_created_idx").on(table.status, table.createdAt),
+    index("products_status_featured_sort_idx").on(
+      table.status,
+      table.isFeatured,
+      table.featuredSort,
+    ),
     index("products_name_idx").on(table.name),
   ],
 );

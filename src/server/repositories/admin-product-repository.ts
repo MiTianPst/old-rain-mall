@@ -17,6 +17,8 @@ const selection = {
   id: products.id, categoryId: products.categoryId, categoryName: categories.name,
   name: products.name, slug: products.slug, summary: products.summary,
   description: products.description, priceCents: products.priceCents, stock: products.stock,
+  compareAtPriceCents: products.compareAtPriceCents, isFeatured: products.isFeatured,
+  featuredSort: products.featuredSort, promotionLabel: products.promotionLabel,
   status: products.status, coverUrl: products.coverUrl, version: products.version,
   createdAt: products.createdAt, updatedAt: products.updatedAt,
 };
@@ -28,8 +30,16 @@ function parseAttributes(value: string) {
   } catch { return {}; }
 }
 
-function normalize<T extends { summary: string | null; description: string | null; coverUrl: string | null }>(row: T) {
-  return { ...row, summary: row.summary ?? undefined, description: row.description ?? undefined, coverUrl: row.coverUrl ?? undefined, variants: [] };
+function normalize<T extends { summary: string | null; description: string | null; coverUrl: string | null; compareAtPriceCents: number | null; promotionLabel: string | null }>(row: T) {
+  return {
+    ...row,
+    summary: row.summary ?? undefined,
+    description: row.description ?? undefined,
+    coverUrl: row.coverUrl ?? undefined,
+    compareAtPriceCents: row.compareAtPriceCents ?? undefined,
+    promotionLabel: row.promotionLabel ?? undefined,
+    variants: [],
+  };
 }
 
 async function attachVariants(rows: AdminProductRecord[]): Promise<AdminProductRecord[]> {
@@ -97,6 +107,8 @@ export const adminProductRepository: AdminProductRepository = {
           summary: input.summary ?? null,
           description: input.description ?? null,
           coverUrl: input.coverUrl ?? null,
+          compareAtPriceCents: input.compareAtPriceCents ?? null,
+          promotionLabel: input.promotionLabel ?? null,
         });
         const productId = Number(result[0].insertId);
         const [variant] = await transaction.insert(productVariants).values({
@@ -130,6 +142,8 @@ export const adminProductRepository: AdminProductRepository = {
           summary: input.data.summary ?? null,
           description: input.data.description ?? null,
           coverUrl: input.data.coverUrl ?? null,
+          compareAtPriceCents: input.data.compareAtPriceCents ?? null,
+          promotionLabel: input.data.promotionLabel ?? null,
           version: sql`${products.version} + 1`,
         }).where(and(eq(products.id, input.id), eq(products.version, input.version)));
         if (result[0].affectedRows === 1) return { status: "UPDATED" as const, id: input.id };
