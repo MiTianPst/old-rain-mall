@@ -9,12 +9,14 @@ import { QuickPurchase } from "./quick-purchase";
 type ProductCardProps = {
   product: ProductCardDto;
   memberPriceCents?: number;
+  isAuthenticated?: boolean;
   compact?: boolean;
 };
 
 export function ProductCard({
   product,
   memberPriceCents,
+  isAuthenticated = false,
   compact = false,
 }: ProductCardProps) {
   const hasMemberPrice =
@@ -65,7 +67,11 @@ export function ProductCard({
           </div>
           <div className="mt-1 flex min-h-5 items-center justify-between gap-2 text-xs">
             <span className="text-amber-800">
-              {hasMemberPrice ? `会员价 ${formatCny(memberPriceCents)}` : "登录查看会员权益"}
+              {hasMemberPrice
+                ? `会员价 ${formatCny(memberPriceCents)}`
+                : isAuthenticated
+                  ? "当前会员价与售价相同"
+                  : "登录查看会员权益"}
             </span>
             {product.salesCount > 0 ? (
               <span className="text-stone-400">已售 {product.salesCount}</span>

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f3ef;
+  --background: #faf7f2;
   --foreground: #1c1917;
 }
 
@@ -17,4 +17,13 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), "PingFang SC", "Microsoft YaHei",
     sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: #ead4b8;
+  color: #292524;
 }

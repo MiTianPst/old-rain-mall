@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { SiteHeader } from "@/features/site/site-header";
+import { SiteFooter } from "@/features/home/site-footer";
 
 import "./globals.css";
 
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
     default: "旧雨电商",
     template: "%s | 旧雨电商",
   },
-  description: "旧雨电商——一个简洁、可靠的微型电商平台。",
+  description: "旧雨电商——认真挑选手机、电脑与智能生活好物。",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -32,9 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <SiteHeader />
         {children}
-        <footer className="mt-auto border-t border-stone-200 px-6 py-8 text-center text-sm text-stone-500">
-          旧雨相逢，值得被好好收藏。
-        </footer>
+        <SiteFooter />
       </body>
     </html>
   );
