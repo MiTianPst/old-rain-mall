@@ -206,7 +206,7 @@ test("分类 DTO 返回在售商品数量", async () => {
 
 test("相关商品服务返回标准卡片并限制推荐数量", async () => {
   const service = createCatalogService(
-    createRepository({ listRelatedProducts: async () => [productRow] }),
+    createRepository({ listRelatedProducts: async () => [{ ...productRow, id: 8 }] }),
   );
 
   const related = await service.listRelatedProducts({
@@ -216,7 +216,7 @@ test("相关商品服务返回标准卡片并限制推荐数量", async () => {
   });
 
   assert.equal(related.length, 1);
-  assert.equal(related[0]?.id, 7);
+  assert.equal(related[0]?.id, 8);
   assert.equal(related[0]?.defaultVariantId, 11);
   assert.equal(related[0]?.activeVariantCount, 1);
 });
