@@ -1,0 +1,1 @@
+ALTER TABLE `rate_limits` MODIFY COLUMN `id` varchar(36) NOT NULL;

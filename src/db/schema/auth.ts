@@ -53,7 +53,7 @@ export const users = mysqlTable(
 );
 
 export const rateLimits = mysqlTable("rate_limits", {
-  id: int("id", { unsigned: true }).autoincrement().primaryKey(),
+  id: varchar("id", { length: 36 }).primaryKey(),
   key: varchar("key", { length: 255 }).notNull(),
   count: int("count", { unsigned: true }).notNull(),
   lastRequest: bigint("last_request", { mode: "number", unsigned: true }).notNull(),
