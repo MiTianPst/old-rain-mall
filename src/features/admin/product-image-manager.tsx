@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 
-import { getLocalProductImage } from "@/features/catalog/image";
+import { getProductImageUrl } from "@/features/catalog/image";
 import type { AdminProductImageRecord } from "@/server/services/admin-product-service";
 
 type Props = { productId: number; initialImages: AdminProductImageRecord[] };
@@ -88,7 +88,7 @@ export function ProductImageManager({ productId, initialImages }: Props) {
       <p aria-live="polite" className="mt-3 min-h-5 text-sm text-amber-800">{message}</p>
       <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {ordered.map((image, index) => {
-          const src = getLocalProductImage(image.url);
+          const src = getProductImageUrl(image.url);
           if (!src) return null;
           return <div key={image.id} className="overflow-hidden rounded-2xl border border-stone-200 bg-stone-50">
             <div className="relative aspect-square"><Image src={src} alt={image.altText ?? "商品图片"} fill sizes="(min-width: 1024px) 20vw, 50vw" className="object-cover" /></div>
@@ -103,4 +103,3 @@ export function ProductImageManager({ productId, initialImages }: Props) {
     </section>
   );
 }
-

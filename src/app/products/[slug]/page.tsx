@@ -7,7 +7,7 @@ import { ProductVisual } from "@/features/catalog/product-visual";
 import { VariantSelection } from "@/features/catalog/variant-selection";
 import { catalogService } from "@/server/catalog";
 
-import { getLocalProductImage } from "@/features/catalog/image";
+import { getProductImageUrl } from "@/features/catalog/image";
 
 export async function generateMetadata({
   params,
@@ -30,7 +30,7 @@ export default async function ProductDetailPage({
   const product = await catalogService.getProductBySlug(slug);
   if (!product) notFound();
   const galleryImages = (product.images ?? [])
-    .map((image) => ({ ...image, src: getLocalProductImage(image.url) }))
+    .map((image) => ({ ...image, src: getProductImageUrl(image.url) }))
     .filter((image): image is typeof image & { src: string } => image.src !== null);
 
   return (

@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import { getLocalProductImage } from "./image";
+import { getProductImageUrl } from "./image";
 
 const colorThemes = [
   "from-amber-100 via-orange-50 to-stone-200 text-amber-900",
@@ -23,7 +23,7 @@ export function ProductVisual({
   priority = false,
   large = false,
 }: ProductVisualProps) {
-  const localCoverUrl = getLocalProductImage(coverUrl);
+  const productImageUrl = getProductImageUrl(coverUrl);
 
   return (
     <div
@@ -31,9 +31,9 @@ export function ProductVisual({
         colorThemes[productId % colorThemes.length]
       } ${large ? "aspect-square rounded-[2rem]" : "aspect-[4/3]"}`}
     >
-      {localCoverUrl ? (
+      {productImageUrl ? (
         <Image
-          src={localCoverUrl}
+          src={productImageUrl}
           alt={name}
           fill
           priority={priority}
