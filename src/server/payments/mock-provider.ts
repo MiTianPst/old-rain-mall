@@ -26,6 +26,15 @@ export class MockPaymentProvider implements PaymentProvider {
     };
   }
 
+  async queryPayment(order: PaymentOrder): Promise<PaymentResult> {
+    return {
+      status: "SUCCESS",
+      paymentNo: order.paymentNo,
+      amountCents: order.amountCents,
+      providerTradeNo: null,
+    };
+  }
+
   async verifyCallback(payload: unknown): Promise<PaymentResult> {
     return paymentResultSchema.parse(payload);
   }

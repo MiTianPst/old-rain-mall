@@ -2,18 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { z } from "zod";
 
-import { ReviewModerationActions } from "@/features/admin/review-moderation-actions";
+import { ReviewManagementActions } from "@/features/admin/review-management-actions";
 import { formatOrderTime } from "@/features/order/presentation";
 import { getAdminSession } from "@/server/admin/auth";
 import { reviewService } from "@/server/review";
 
-export const metadata: Metadata = { title: "评价审核" };
+export const metadata: Metadata = { title: "评价管理" };
 
 const querySchema = z.object({
-  status: z.preprocess(
-    (value) => (value === "" ? undefined : value),
-    z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
-  ),
   page: z.coerce.number().int().positive().catch(1),
 });
 
@@ -21,11 +17,10 @@ export default async function AdminReviewsPage(props: { searchParams: Promise<Re
   const admin = await getAdminSession();
   if (!admin) return null;
   const query = querySchema.parse(await props.searchParams);
-  const result = await reviewService.listAdmin({ status: query.status, page: query.page, pageSize: 20 });
+  const result = await reviewService.listAdmin({ page: query.page, pageSize: 20 });
   const totalPages = Math.max(1, Math.ceil(result.total / 20));
-  const buildHref = (page: number, status = query.status) => {
+  const buildHref = (page: number) => {
     const params = new URLSearchParams();
-    if (status) params.set("status", status);
     if (page > 1) params.set("page", String(page));
     const value = params.toString();
     return value ? `/admin/reviews?${value}` : "/admin/reviews";
@@ -34,14 +29,9 @@ export default async function AdminReviewsPage(props: { searchParams: Promise<Re
   return (
     <main>
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div><p className="text-sm tracking-[0.2em] text-amber-800">用户内容</p><h1 className="mt-2 text-3xl font-semibold">评价审核</h1></div>
+        <div><p className="text-sm tracking-[0.2em] text-amber-800">用户内容</p><h1 className="mt-2 text-3xl font-semibold">评价管理</h1><p className="mt-2 text-sm text-stone-500">查看用户评价内容，必要时删除不当评价。</p></div>
         <Link href="/admin" className="text-sm text-stone-500 hover:text-amber-800">返回后台概览 →</Link>
       </div>
-      <nav className="mt-6 flex flex-wrap gap-2" aria-label="评价状态筛选">
-        {[[undefined, "全部"], ["PENDING", "待审核"], ["APPROVED", "已通过"], ["REJECTED", "已驳回"]].map(([value, label]) => (
-          <Link key={label} href={buildHref(1, value as "PENDING" | "APPROVED" | "REJECTED" | undefined)} className={`rounded-full px-4 py-2 text-sm ${query.status === value || (!query.status && !value) ? "bg-stone-900 text-white" : "border border-stone-300 bg-white text-stone-600"}`}>{label}</Link>
-        ))}
-      </nav>
 
       <div className="mt-6 space-y-4">
         {result.items.map((review) => (
@@ -55,7 +45,7 @@ export default async function AdminReviewsPage(props: { searchParams: Promise<Re
             </div>
             <p className="mt-4 whitespace-pre-line rounded-2xl bg-stone-50 p-4 text-sm leading-6 text-stone-700">{review.content}</p>
             <p className="mt-3 text-xs text-stone-400">提交于 {formatOrderTime(review.createdAt)}</p>
-            <ReviewModerationActions reviewId={review.id} status={review.status} />
+            <ReviewManagementActions reviewId={review.id} />
           </article>
         ))}
       </div>

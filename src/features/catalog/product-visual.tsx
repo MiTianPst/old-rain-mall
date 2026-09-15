@@ -36,8 +36,10 @@ export function ProductVisual({
           src={productImageUrl}
           alt={name}
           fill
+          // 开发环境的网络代理会把 Unsplash 解析到私有地址，避免 Next 优化器误判 SSRF。
           unoptimized={productImageUrl.startsWith("https://")}
           priority={priority}
+          quality={75}
           sizes={
             large
               ? "(min-width: 1024px) 50vw, 100vw"

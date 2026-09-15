@@ -12,7 +12,15 @@ import type { OrderPricing } from "./pricing";
 
 const initialState: OrderActionState = { status: "IDLE", message: "" };
 
-export function CheckoutForm({ checkout, pricing }: { checkout: CheckoutRecord; pricing: OrderPricing }) {
+export function CheckoutForm({
+  checkout,
+  pricing,
+  buyNowVariantId,
+}: {
+  checkout: CheckoutRecord;
+  pricing: OrderPricing;
+  buyNowVariantId?: number;
+}) {
   const [state, formAction, pending] = useActionState(createOrderAction, initialState);
   const defaultAddress = checkout.addresses.find((address) => address.isDefault) ?? checkout.addresses[0];
   const hasUnavailableItem = checkout.items.some(
@@ -25,6 +33,9 @@ export function CheckoutForm({ checkout, pricing }: { checkout: CheckoutRecord; 
 
   return (
     <form action={formAction} className="mt-10 grid gap-8 lg:grid-cols-[1fr_21rem]">
+      {buyNowVariantId !== undefined ? (
+        <input type="hidden" name="buyNowVariantId" value={buyNowVariantId} />
+      ) : null}
       <div className="space-y-8">
         <section className="rounded-3xl border border-stone-200 bg-white p-6">
           <div className="flex items-center justify-between gap-4">
@@ -56,7 +67,10 @@ export function CheckoutForm({ checkout, pricing }: { checkout: CheckoutRecord; 
         </section>
 
         <section className="rounded-3xl border border-stone-200 bg-white p-6">
-          <h2 className="text-xl font-semibold">商品清单</h2>
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-xl font-semibold">商品清单</h2>
+            {buyNowVariantId !== undefined ? <span className="text-sm text-amber-800">立即购买 · 仅此商品</span> : null}
+          </div>
           <div className="mt-5 space-y-4">
             {checkout.items.map((item) => (
               <div key={item.id} className="grid grid-cols-[5rem_1fr_auto] items-center gap-4 border-t border-stone-100 pt-4 first:border-0 first:pt-0">

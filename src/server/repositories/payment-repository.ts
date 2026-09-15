@@ -24,7 +24,9 @@ function isDuplicateEntry(error: unknown) {
   return candidate.code === "ER_DUP_ENTRY" || candidate.errno === 1062;
 }
 
-async function readFinalState(userId: string, orderNo: string): Promise<PaymentConfirmationResult> {
+async function readFinalState(userId: string | undefined, orderNo: string): Promise<PaymentConfirmationResult> {
+  const conditions = [eq(orders.orderNo, orderNo)];
+  if (userId) conditions.push(eq(orders.userId, userId));
   const [row] = await db
     .select({
       orderStatus: orders.status,
@@ -34,7 +36,7 @@ async function readFinalState(userId: string, orderNo: string): Promise<PaymentC
     .from(orders)
     .innerJoin(payments, eq(payments.orderId, orders.id))
     .innerJoin(users, eq(users.id, orders.userId))
-    .where(and(eq(orders.userId, userId), eq(orders.orderNo, orderNo)))
+    .where(and(...conditions))
     .limit(1);
 
   if (!row) return { status: "ORDER_NOT_FOUND" };
@@ -146,12 +148,17 @@ export const paymentRepository: PaymentRepository = {
         const [order] = await transaction
           .select({
             id: orders.id,
+            userId: orders.userId,
             status: orders.status,
             totalCents: orders.totalCents,
             expiresAt: orders.expiresAt,
           })
           .from(orders)
-          .where(and(eq(orders.userId, input.userId), eq(orders.orderNo, input.orderNo)))
+          .where(
+            input.userId
+              ? and(eq(orders.userId, input.userId), eq(orders.orderNo, input.orderNo))
+              : eq(orders.orderNo, input.orderNo),
+          )
           .limit(1)
           .for("update");
         if (!order) return { status: "ORDER_NOT_FOUND" as const };
@@ -169,7 +176,7 @@ export const paymentRepository: PaymentRepository = {
         const [user] = await transaction
           .select({ membershipLevel: users.membershipLevel, lifetimePaidCents: users.lifetimePaidCents })
           .from(users)
-          .where(eq(users.id, input.userId))
+          .where(eq(users.id, order.userId))
           .limit(1)
           .for("update");
         if (!payment || !user) return { status: "INVALID_STATE" as const };
@@ -204,7 +211,7 @@ export const paymentRepository: PaymentRepository = {
               stockAfter: item.stock + item.quantity,
               referenceType: "ORDER",
               referenceId: input.orderNo,
-              operatorUserId: input.userId,
+              operatorUserId: order.userId,
               note: "订单超时恢复库存",
               createdAt: input.now,
             });
@@ -221,7 +228,8 @@ export const paymentRepository: PaymentRepository = {
         }
         if (
           input.providerResult.status !== "SUCCESS" ||
-          input.providerResult.paymentNo !== payment.paymentNo
+          (input.providerResult.paymentNo !== undefined && input.providerResult.paymentNo !== payment.paymentNo) ||
+          (input.providerResult.orderNo !== undefined && input.providerResult.orderNo !== input.orderNo)
         ) {
           return { status: "INVALID_STATE" as const };
         }
@@ -257,10 +265,10 @@ export const paymentRepository: PaymentRepository = {
             membershipUpgradedAt: nextLevel > currentLevel ? input.now : undefined,
             updatedAt: input.now,
           })
-          .where(eq(users.id, input.userId));
+          .where(eq(users.id, order.userId));
         if (nextLevel > currentLevel) {
           await transaction.insert(membershipLevelLogs).values({
-            userId: input.userId,
+            userId: order.userId,
             orderId: order.id,
             fromLevel: currentLevel,
             toLevel: nextLevel,

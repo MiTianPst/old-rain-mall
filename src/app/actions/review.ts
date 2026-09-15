@@ -6,6 +6,7 @@ import { z } from "zod";
 import { safeNextPath } from "@/features/auth/schema";
 import { getActiveUserIdentity } from "@/server/auth/session";
 import { getAdminSession } from "@/server/admin/auth";
+import { auditService } from "@/server/audit";
 import { reviewService } from "@/server/review";
 
 const createReviewSchema = z.object({
@@ -59,37 +60,37 @@ export async function createReviewAction(
   return { status: "SUCCESS", message: result.message };
 }
 
-const moderateReviewSchema = z.object({
+const deleteReviewSchema = z.object({
   reviewId: z.coerce.number().int().positive(),
-  status: z.enum(["APPROVED", "REJECTED"]),
-  note: z.string().trim().max(500, "审核备注不能超过 500 个字").optional(),
 });
 
-export type ModerateReviewActionState = {
+export type DeleteReviewActionState = {
   status: "IDLE" | "SUCCESS" | "ERROR";
   message: string;
 };
 
-export async function moderateReviewAction(
-  _previousState: ModerateReviewActionState,
+export async function deleteReviewAction(
+  _previousState: DeleteReviewActionState,
   formData: FormData,
-): Promise<ModerateReviewActionState> {
-  const parsed = moderateReviewSchema.safeParse({
+): Promise<DeleteReviewActionState> {
+  const parsed = deleteReviewSchema.safeParse({
     reviewId: formData.get("reviewId"),
-    status: formData.get("status"),
-    note: formData.get("note"),
   });
-  if (!parsed.success) return { status: "ERROR", message: "审核参数不正确" };
+  if (!parsed.success) return { status: "ERROR", message: "评价参数不正确" };
 
   const admin = await getAdminSession();
-  const result = await reviewService.moderate({
+  const result = await reviewService.deleteReview({
     adminId: admin?.id ?? null,
     reviewId: parsed.data.reviewId,
-    status: parsed.data.status,
-    note: parsed.data.note,
   });
   if (!result.ok) return { status: "ERROR", message: result.message };
 
+  await auditService.record(admin, {
+    action: "REVIEW_DELETE",
+    targetType: "REVIEW",
+    targetId: String(parsed.data.reviewId),
+    summary: "删除评价",
+  }).catch(() => undefined);
   revalidatePath("/admin/reviews");
   revalidatePath("/products/[slug]", "page");
   return { status: "SUCCESS", message: result.message };

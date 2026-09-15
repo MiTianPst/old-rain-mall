@@ -24,7 +24,7 @@
 - 已接入 Better Auth 邮箱密码认证与数据库 Session。
 - 登录用户可以把商品真实写入购物车，并在购物车页查看、修改和删除已选商品。
 - 已完成地址簿、会员折扣、结算、原子下单、两小时订单过期、取消订单与库存恢复。
-- 已完成幂等模拟支付、累计实付更新、心悦会员升级和支付结果展示。
+- 已完成幂等模拟支付、累计实付更新、心悦会员升级和支付结果展示；支付适配器支持微信 Native 扫码支付、签名回调解密及主动查询。
 - 已完成管理员权限、后台概览、商品 CRUD（归档代替删除）、分类管理和订单履约管理。
 - 已完成物流状态流转、收货确认、售后申请/审核/模拟退款及退款库存恢复。
 - 已完成用户与会员后台、冻结交易拦截、修改密码、忘记密码、登录/重置限流和管理员操作审计。
@@ -157,7 +157,7 @@ drizzle.config.ts        Drizzle Kit 配置
 - `cart_items`：登录用户的购物车商品
 - `orders`：订单状态、收货快照、会员折扣快照和实付金额
 - `order_items`：商品名称、图片、单价和数量快照
-- `payments`：模拟支付记录
+- `payments`：支付记录（支持 MOCK 与 WECHAT_NATIVE）
 - `membership_level_logs`：会员升级审计流水
 - `shipments`：物流公司、单号及运输状态
 - `after_sales`：售后申请、审核、退款及处理状态
@@ -249,8 +249,17 @@ PENDING_PAYMENT 超时后可进入 CLOSED
 /api/categories           公开分类接口
 /api/admin/orders/export  管理员按当前筛选导出 CSV
 /api/payments/mock        模拟支付接口
+/api/payments/wechat/notify 微信支付 Native 回调
 /api/jobs/expire-orders   关闭超时订单
 ```
+
+## 支付与部署约定
+
+- `PAYMENT_PROVIDER=MOCK` 仅用于本地演示；生产微信支付设置为 `WECHAT_NATIVE`。
+- 微信支付私钥、平台证书、API v3 密钥和商户号只通过环境变量注入，不得进入客户端 bundle 或 Git。
+- Native 下单只创建待支付支付单，不会提前确认订单；支付成功以验签后的微信回调或服务端主动查询为准，确认逻辑复用同一幂等事务。
+- 微信回调必须使用公网 HTTPS 地址，并配置为 `WECHAT_NOTIFY_URL`。
+- Next.js 使用 standalone 输出；商品图片上传统一由 Sharp 转换为 WebP，运行时挂载 `/app/public/uploads/products` 持久化卷。
 
 ## 后续实现顺序
 

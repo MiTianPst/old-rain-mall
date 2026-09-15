@@ -97,7 +97,6 @@ export function VariantSelection({
         />
         <BuyNowButton
           variantId={selectedVariant.id}
-          returnTo={returnTo}
           disabled={selectedVariant.stock <= 0}
         />
       </div>

@@ -8,11 +8,12 @@ import { ConfirmReceiptButton } from "@/features/order/confirm-receipt-button";
 import { afterSaleStatusLabels, formatDiscountRate, formatOrderTime, formatVariantSnapshot, orderStatusLabels, shipmentStatusLabels } from "@/features/order/presentation";
 import { getMembershipLabel } from "@/lib/membership";
 import { formatCny } from "@/lib/money";
-import { MockPaymentButton } from "@/features/payment/mock-payment-button";
+import { PaymentButton } from "@/features/payment/payment-button";
 import { ReviewForm } from "@/features/review/review-form";
 import { getCurrentSession } from "@/server/auth/session";
 import { orderService } from "@/server/orders";
 import { reviewService } from "@/server/review";
+import { paymentMethod } from "@/server/payments";
 
 export default async function OrderDetailPage(props: PageProps<"/orders/[orderNo]">) {
   const { orderNo } = await props.params;
@@ -48,7 +49,7 @@ export default async function OrderDetailPage(props: PageProps<"/orders/[orderNo
           <p className="text-sm text-amber-800">{getMembershipLabel(order.membershipLevelSnapshot)} · {formatDiscountRate(order.discountRateBps)}计价</p>
           <dl className="mt-5 space-y-3 text-sm"><div className="flex justify-between"><dt className="text-stone-500">商品原价</dt><dd>{formatCny(order.originalAmountCents)}</dd></div><div className="flex justify-between"><dt className="text-stone-500">会员优惠</dt><dd className="text-amber-800">-{formatCny(order.memberDiscountCents)}</dd></div><div className="flex justify-between"><dt className="text-stone-500">运费</dt><dd className="text-emerald-700">包邮</dd></div><div className="flex justify-between border-t border-stone-200 pt-4 text-base"><dt>应付金额</dt><dd className="text-2xl font-semibold text-amber-800">{formatCny(order.totalCents)}</dd></div></dl>
           {order.status === "PENDING_PAYMENT" ? <p className="mt-5 rounded-2xl bg-amber-50 p-3 text-sm text-amber-900">支付截止：{formatOrderTime(order.expiresAt)}</p> : null}
-          {canCancel ? <MockPaymentButton orderNo={order.orderNo} /> : null}
+          {canCancel ? <PaymentButton orderNo={order.orderNo} paymentMethod={paymentMethod} /> : null}
           {canCancel ? <CancelOrderButton orderNo={order.orderNo} /> : null}
           {order.status === "PAID" ? <p className="mt-5 rounded-2xl bg-emerald-50 p-3 text-sm text-emerald-800">支付成功，会员累计实付金额已更新。</p> : null}
         </aside>

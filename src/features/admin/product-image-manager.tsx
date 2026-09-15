@@ -91,7 +91,7 @@ export function ProductImageManager({ productId, initialImages }: Props) {
           const src = getProductImageUrl(image.url);
           if (!src) return null;
           return <div key={image.id} className="overflow-hidden rounded-2xl border border-stone-200 bg-stone-50">
-            <div className="relative aspect-square"><Image src={src} alt={image.altText ?? "商品图片"} fill unoptimized={src.startsWith("https://")} sizes="(min-width: 1024px) 20vw, 50vw" className="object-cover" /></div>
+            <div className="relative aspect-square"><Image src={src} alt={image.altText ?? "商品图片"} fill unoptimized={src.startsWith("https://")} quality={75} sizes="(min-width: 1024px) 20vw, 50vw" className="object-cover" /></div>
             <div className="space-y-2 p-3 text-xs">
               <div className="flex items-center justify-between gap-2"><span>{image.isPrimary ? "主图" : `图片 ${index + 1}`}</span><button type="button" onClick={() => updateImage(image.id, { isPrimary: true })} disabled={pending || image.isPrimary} className="text-amber-800 disabled:text-stone-300">设为主图</button></div>
               <div className="flex gap-2"><button type="button" onClick={() => updateImage(image.id, { sortOrder: Math.max(0, image.sortOrder - 1) })} disabled={pending || index === 0} className="text-stone-600 disabled:text-stone-300">上移</button><button type="button" onClick={() => updateImage(image.id, { sortOrder: image.sortOrder + 1 })} disabled={pending || index === ordered.length - 1} className="text-stone-600 disabled:text-stone-300">下移</button><button type="button" onClick={() => removeImage(image.id)} disabled={pending} className="ml-auto text-rose-700 disabled:text-stone-300">删除</button></div>

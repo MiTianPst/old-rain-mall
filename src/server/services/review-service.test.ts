@@ -9,7 +9,7 @@ function repository(overrides: Partial<ReviewRepository> = {}): ReviewRepository
     listPublic: async () => [],
     listByOrder: async () => [],
     listAdmin: async () => ({ items: [], total: 0 }),
-    moderate: async () => ({ status: "UPDATED" }),
+    deleteReview: async () => ({ status: "DELETED" }),
     ...overrides,
   };
 }
@@ -69,14 +69,14 @@ test("新评价提交时直接使用公开状态", async () => {
   assert.deepEqual(result, { ok: true, reviewId: 3, message: "评价已发布" });
 });
 
-test("评价审核服务只允许管理员更新审核状态", async () => {
+test("评价管理服务只允许管理员删除评价", async () => {
   const service = createReviewService(repository());
   assert.deepEqual(
-    await service.moderate({ adminId: null, reviewId: 1, status: "APPROVED", note: "通过" }),
-    { ok: false, code: "FORBIDDEN", message: "没有评价审核权限" },
+    await service.deleteReview({ adminId: null, reviewId: 1 }),
+    { ok: false, code: "FORBIDDEN", message: "没有评价管理权限" },
   );
   assert.deepEqual(
-    await service.moderate({ adminId: "admin", reviewId: 1, status: "REJECTED", note: "内容不合适" }),
-    { ok: true, message: "评价审核状态已更新" },
+    await service.deleteReview({ adminId: "admin", reviewId: 1 }),
+    { ok: true, message: "评价已删除" },
   );
 });

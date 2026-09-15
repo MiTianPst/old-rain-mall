@@ -28,14 +28,24 @@ export async function createOrderAction(
   const identity = await getActiveUserIdentity();
   if (!identity) return errorState("请先登录后再创建订单");
 
-  const parsed = createOrderSchema.safeParse({ addressId: formData.get("addressId") });
-  if (!parsed.success) return errorState("请选择有效的收货地址");
+  const parsed = createOrderSchema.safeParse({
+    addressId: formData.get("addressId"),
+    buyNowVariantId: formData.get("buyNowVariantId"),
+  });
+  if (!parsed.success) {
+    return errorState(
+      parsed.error.issues.some((issue) => issue.path[0] === "buyNowVariantId")
+        ? "商品规格参数不正确"
+        : "请选择有效的收货地址",
+    );
+  }
 
   let orderNo: string;
   try {
     const result = await orderService.createOrder({
       userId: identity.session.user.id,
       addressId: parsed.data.addressId,
+      buyNowVariantId: parsed.data.buyNowVariantId,
       userStatus: identity.user.status,
     });
     if (!result.ok) return errorState(result.message);

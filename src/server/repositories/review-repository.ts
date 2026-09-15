@@ -142,19 +142,12 @@ export const reviewRepository: ReviewRepository = {
     return { items: rows, total: totalRow?.value ?? 0 };
   },
 
-  async moderate({ adminId, reviewId, status, note, now }) {
+  async deleteReview(reviewId) {
     const result = await db
-      .update(productReviews)
-      .set({
-        status,
-        reviewNote: note,
-        reviewedBy: adminId,
-        reviewedAt: now,
-        updatedAt: now,
-      })
+      .delete(productReviews)
       .where(eq(productReviews.id, reviewId));
     return result[0].affectedRows > 0
-      ? { status: "UPDATED" as const }
+      ? { status: "DELETED" as const }
       : { status: "NOT_FOUND" as const };
   },
 };

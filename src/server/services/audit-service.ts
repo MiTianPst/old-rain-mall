@@ -1,6 +1,6 @@
 import type { AdminIdentity } from "@/server/admin/auth";
 
-export type AuditTargetType = "CATEGORY" | "PRODUCT" | "VARIANT" | "INVENTORY" | "PRODUCT_IMAGE" | "ORDER" | "SHIPMENT" | "AFTER_SALE" | "USER";
+export type AuditTargetType = "CATEGORY" | "PRODUCT" | "VARIANT" | "INVENTORY" | "PRODUCT_IMAGE" | "ORDER" | "SHIPMENT" | "AFTER_SALE" | "REVIEW" | "USER";
 export type AuditInput = { operatorUserId: string; action: string; targetType: AuditTargetType; targetId: string; summary: string };
 export interface AuditRepository { insert(input: AuditInput): Promise<void>; list(input: { page: number; pageSize: number; targetType?: AuditTargetType }): Promise<{ items: Array<AuditInput & { id: number; createdAt: Date }>; total: number }>; }
 
@@ -18,4 +18,3 @@ export function createAuditService(repository: AuditRepository) {
     },
   };
 }
-

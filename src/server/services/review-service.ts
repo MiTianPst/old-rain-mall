@@ -32,6 +32,10 @@ export type ReviewRepositoryCreateResult =
   | { status: "NOT_ELIGIBLE" }
   | { status: "ALREADY_REVIEWED" };
 
+export type ReviewRepositoryDeleteResult =
+  | { status: "DELETED" }
+  | { status: "NOT_FOUND" };
+
 export interface ReviewRepository {
   createReview(input: {
     userId: string;
@@ -49,13 +53,7 @@ export interface ReviewRepository {
     page: number;
     pageSize: number;
   }): Promise<{ items: AdminReviewRecord[]; total: number }>;
-  moderate(input: {
-    adminId: string;
-    reviewId: number;
-    status: Exclude<ReviewStatus, "PENDING">;
-    note: string | null;
-    now: Date;
-  }): Promise<{ status: "UPDATED" | "NOT_FOUND" }>;
+  deleteReview(reviewId: number): Promise<ReviewRepositoryDeleteResult>;
 }
 
 export function createReviewService(repository: ReviewRepository) {
@@ -120,24 +118,16 @@ export function createReviewService(repository: ReviewRepository) {
       return repository.listAdmin(input);
     },
 
-    async moderate(input: {
-      adminId: string | null;
-      reviewId: number;
-      status: Exclude<ReviewStatus, "PENDING">;
-      note?: string;
-    }) {
+    async deleteReview(input: { adminId: string | null; reviewId: number }) {
       if (!input.adminId) {
-        return { ok: false as const, code: "FORBIDDEN" as const, message: "没有评价审核权限" };
+        return { ok: false as const, code: "FORBIDDEN" as const, message: "没有评价管理权限" };
       }
-      const result = await repository.moderate({
-        adminId: input.adminId,
-        reviewId: input.reviewId,
-        status: input.status,
-        note: input.note?.trim() || null,
-        now: new Date(),
-      });
-      return result.status === "UPDATED"
-        ? { ok: true as const, message: "评价审核状态已更新" }
+      if (!Number.isSafeInteger(input.reviewId) || input.reviewId <= 0) {
+        return { ok: false as const, code: "INVALID_INPUT" as const, message: "评价参数不正确" };
+      }
+      const result = await repository.deleteReview(input.reviewId);
+      return result.status === "DELETED"
+        ? { ok: true as const, message: "评价已删除" }
         : { ok: false as const, code: "NOT_FOUND" as const, message: "评价不存在" };
     },
   };

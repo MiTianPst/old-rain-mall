@@ -1,10 +1,10 @@
 # 旧雨电商
 
-旧雨电商是一个使用 Next.js 构建的微型电商项目，计划包含商品浏览、用户注册登录、心悦会员、购物车、订单、模拟支付和后台管理。
+旧雨电商是一个使用 Next.js 构建的微型电商项目，包含商品浏览、用户注册登录、心悦会员、购物车、订单、支付和后台管理。
 
 ## 当前状态
 
-基础工程和 MySQL 数据层已创建，页面业务功能尚未开始实现。
+核心商城、后台管理、会员、评价、售后和支付流程已实现；默认使用模拟支付，也可通过配置切换微信支付 Native 扫码支付。
 
 ## 技术栈
 
@@ -46,6 +46,27 @@ npm run dev
 ```
 
 打开 [http://localhost:3000](http://localhost:3000) 查看项目。
+
+## 微信支付 Native
+
+生产环境复制 `.env.production.example` 为 `.env.production`，填入微信支付商户证书、私钥、API v3 密钥和公网 HTTPS 回调地址，并设置 `PAYMENT_PROVIDER=WECHAT_NATIVE`。支付页会生成 Native 二维码；回调地址为 `/api/payments/wechat/notify`，用户也可以在扫码后主动查询订单状态。
+
+微信支付回调必须能够从公网访问，且必须使用 HTTPS。商户私钥、平台证书和 API v3 密钥只放在部署环境变量中，禁止提交到 Git。
+
+## 生产部署
+
+项目提供 `Dockerfile` 和 `compose.production.yaml`。首次部署：
+
+```bash
+cp .env.production.example .env.production
+# 编辑 .env.production，替换数据库、Better Auth 和微信支付配置
+docker compose --env-file .env.production -f compose.production.yaml build app
+docker compose --env-file .env.production -f compose.production.yaml up -d mysql
+docker compose --env-file .env.production -f compose.production.yaml --profile tools run --rm migrate
+docker compose --env-file .env.production -f compose.production.yaml up -d app
+```
+
+生产镜像使用 Next.js standalone 输出；商品上传图片会由 Sharp 自动纠正方向、限制最长边并转换为 WebP，上传目录通过 Docker volume 持久化。健康检查地址为 `/api/health`。
 
 ## 检查命令
 

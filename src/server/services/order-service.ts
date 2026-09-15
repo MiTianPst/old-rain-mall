@@ -65,7 +65,7 @@ export type OrderCancelResult =
   | { status: "EXPIRED" };
 
 export interface OrderRepository {
-  getCheckout(userId: string): Promise<CheckoutRecord>;
+  getCheckout(userId: string, buyNowVariantId?: number): Promise<CheckoutRecord>;
   create(input: {
     userId: string;
     addressId: number;
@@ -73,6 +73,7 @@ export interface OrderRepository {
     expiresAt: Date;
     orderNo: string;
     paymentNo: string;
+    buyNowVariantId?: number;
   }): Promise<OrderCreateResult>;
   listByUser(userId: string): Promise<OrderRecord[]>;
   getByOrderNo(input: { userId: string; orderNo: string }): Promise<OrderRecord | null>;
@@ -101,9 +102,12 @@ export function createOrderService(repository: OrderRepository, options: { now?:
   const currentTime = () => new Date(now().getTime());
 
   return {
-    async getCheckout(userId: string | null) {
+    async getCheckout(userId: string | null, options: { buyNowVariantId?: number } = {}) {
       if (!userId) return idResult("请先登录后再结算");
-      const checkout = await repository.getCheckout(userId);
+      if (options.buyNowVariantId !== undefined && (!Number.isSafeInteger(options.buyNowVariantId) || options.buyNowVariantId <= 0)) {
+        return errorResult("PRODUCT_UNAVAILABLE", "商品规格参数不正确");
+      }
+      const checkout = await repository.getCheckout(userId, options.buyNowVariantId);
       const originalAmountCents = checkout.items.reduce(
         (sum, item) => sum + item.product.priceCents * item.quantity,
         0,
@@ -115,11 +119,14 @@ export function createOrderService(repository: OrderRepository, options: { now?:
       return { ok: true as const, data: checkout, pricing };
     },
 
-    async createOrder(input: { userId: string | null; addressId: number; userStatus?: "ACTIVE" | "FROZEN" }) {
+    async createOrder(input: { userId: string | null; addressId: number; buyNowVariantId?: number; userStatus?: "ACTIVE" | "FROZEN" }) {
       if (!input.userId) return idResult("请先登录后再创建订单");
       if (input.userStatus === "FROZEN") return { ok: false as const, code: "ACCOUNT_FROZEN" as const, message: "账号已被冻结，暂时无法执行此操作" };
       if (!Number.isSafeInteger(input.addressId) || input.addressId <= 0) {
         return errorResult("ADDRESS_NOT_FOUND", "收货地址不存在");
+      }
+      if (input.buyNowVariantId !== undefined && (!Number.isSafeInteger(input.buyNowVariantId) || input.buyNowVariantId <= 0)) {
+        return errorResult("PRODUCT_UNAVAILABLE", "商品规格参数不正确");
       }
       const createdAt = currentTime();
       const result = await repository.create({
@@ -129,6 +136,7 @@ export function createOrderService(repository: OrderRepository, options: { now?:
         expiresAt: new Date(createdAt.getTime() + ORDER_EXPIRATION_MS),
         orderNo: makeNumber("OR", createdAt),
         paymentNo: makeNumber("PAY", createdAt),
+        buyNowVariantId: input.buyNowVariantId,
       });
       if (result.status === "CREATED") return { ok: true as const, orderNo: result.orderNo };
       if (result.status === "USER_NOT_FOUND") return idResult("登录状态已失效，请重新登录");

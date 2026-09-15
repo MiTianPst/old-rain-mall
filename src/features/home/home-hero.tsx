@@ -8,12 +8,12 @@ export function HomeHero({ product }: { product?: HomepageProductDto }) {
   return (
     <section className="relative overflow-hidden border-b border-[#e8dfd2] bg-[#f6f0e7]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_16%,rgba(255,255,255,0.95),transparent_34%),radial-gradient(circle_at_85%_22%,rgba(217,184,145,0.28),transparent_32%)]" />
-      <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-6 py-14 lg:grid-cols-[1.02fr_0.98fr] lg:px-8 lg:py-20">
+      <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-6 py-12 lg:grid-cols-[1.02fr_0.98fr] lg:px-8 lg:py-16">
         <div>
           <p className="text-sm font-medium tracking-[0.28em] text-[#a75e32]">
             旧雨精选 · 好用的科技
           </p>
-          <h1 className="mt-5 max-w-2xl font-serif text-5xl font-semibold leading-[1.08] tracking-[-0.045em] text-stone-900 sm:text-6xl lg:text-7xl">
+          <h1 className="mt-5 max-w-2xl font-serif text-5xl font-semibold leading-[1.08] tracking-[-0.045em] text-stone-900 sm:text-6xl">
             科技，让日常
             <br />
             多一点喜欢

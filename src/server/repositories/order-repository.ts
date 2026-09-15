@@ -144,6 +144,22 @@ async function loadAfterSales(orderIds: number[]) {
   }]));
 }
 
+type CreateOrderLine = {
+  cartItemId: number | null;
+  productId: number;
+  variantId: number;
+  quantity: number;
+  productName: string;
+  variantName: string;
+  variantAttributesJson: string;
+  productCoverUrl: string | null;
+  unitPriceCents: number;
+  stock: number;
+  variantStatus: "ACTIVE" | "ARCHIVED";
+  productStatus: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  categoryStatus: "ACTIVE" | "HIDDEN";
+};
+
 async function createOrderTransaction(input: Parameters<OrderRepository["create"]>[0]) {
   return db.transaction(async (transaction) => {
     const [user] = await transaction
@@ -174,31 +190,70 @@ async function createOrderTransaction(input: Parameters<OrderRepository["create"
       .for("update");
     if (!address) throw new OrderTransactionError({ status: "ADDRESS_NOT_FOUND" });
 
-    const items = await transaction
-      .select({
-        cartItemId: cartItems.id,
-        productId: products.id,
-        variantId: productVariants.id,
-        quantity: cartItems.quantity,
-        productName: products.name,
-        variantName: productVariants.name,
-        variantAttributesJson: productVariants.attributesJson,
-        productCoverUrl: products.coverUrl,
-        unitPriceCents: productVariants.priceCents,
-        stock: productVariants.stock,
-        variantStatus: productVariants.status,
-        productStatus: products.status,
-        categoryStatus: categories.status,
-      })
-      .from(cartItems)
-      .innerJoin(productVariants, eq(cartItems.variantId, productVariants.id))
-      .innerJoin(products, eq(productVariants.productId, products.id))
-      .innerJoin(categories, eq(products.categoryId, categories.id))
-      .where(eq(cartItems.userId, input.userId))
-      .orderBy(asc(productVariants.id))
-      .for("update");
+    let items: CreateOrderLine[];
+    if (input.buyNowVariantId !== undefined) {
+      const rows = await transaction
+        .select({
+          productId: products.id,
+          variantId: productVariants.id,
+          productName: products.name,
+          variantName: productVariants.name,
+          variantAttributesJson: productVariants.attributesJson,
+          productCoverUrl: products.coverUrl,
+          unitPriceCents: productVariants.priceCents,
+          stock: productVariants.stock,
+          variantStatus: productVariants.status,
+          productStatus: products.status,
+          categoryStatus: categories.status,
+        })
+        .from(productVariants)
+        .innerJoin(products, eq(productVariants.productId, products.id))
+        .innerJoin(categories, eq(products.categoryId, categories.id))
+        .where(
+          and(
+            eq(productVariants.id, input.buyNowVariantId),
+            eq(productVariants.status, "ACTIVE"),
+            eq(products.status, "ACTIVE"),
+            eq(categories.status, "ACTIVE"),
+          ),
+        )
+        .limit(1)
+        .for("update");
+      items = rows.map((row) => ({ ...row, cartItemId: null, quantity: 1 }));
+    } else {
+      const rows = await transaction
+        .select({
+          cartItemId: cartItems.id,
+          productId: products.id,
+          variantId: productVariants.id,
+          quantity: cartItems.quantity,
+          productName: products.name,
+          variantName: productVariants.name,
+          variantAttributesJson: productVariants.attributesJson,
+          productCoverUrl: products.coverUrl,
+          unitPriceCents: productVariants.priceCents,
+          stock: productVariants.stock,
+          variantStatus: productVariants.status,
+          productStatus: products.status,
+          categoryStatus: categories.status,
+        })
+        .from(cartItems)
+        .innerJoin(productVariants, eq(cartItems.variantId, productVariants.id))
+        .innerJoin(products, eq(productVariants.productId, products.id))
+        .innerJoin(categories, eq(products.categoryId, categories.id))
+        .where(eq(cartItems.userId, input.userId))
+        .orderBy(asc(productVariants.id))
+        .for("update");
+      items = rows;
+    }
 
-    if (items.length === 0) throw new OrderTransactionError({ status: "EMPTY_CART" });
+    if (items.length === 0) {
+      throw new OrderTransactionError(
+        input.buyNowVariantId !== undefined
+          ? { status: "PRODUCT_UNAVAILABLE", productName: "当前商品" }
+          : { status: "EMPTY_CART" },
+      );
+    }
 
     for (const item of items) {
       if (item.variantStatus !== "ACTIVE" || item.productStatus !== "ACTIVE" || item.categoryStatus !== "ACTIVE") {
@@ -305,17 +360,14 @@ async function createOrderTransaction(input: Parameters<OrderRepository["create"
       createdAt: input.now,
       updatedAt: input.now,
     });
-    await transaction
-      .delete(cartItems)
-      .where(
-        and(
-          eq(cartItems.userId, input.userId),
-          inArray(
-            cartItems.id,
-            items.map((item) => item.cartItemId),
-          ),
-        ),
-      );
+    const cartItemIds = items
+      .map((item) => item.cartItemId)
+      .filter((cartItemId): cartItemId is number => cartItemId !== null);
+    if (cartItemIds.length > 0) {
+      await transaction
+        .delete(cartItems)
+        .where(and(eq(cartItems.userId, input.userId), inArray(cartItems.id, cartItemIds)));
+    }
 
     return { status: "CREATED" as const, orderNo: input.orderNo };
   });
@@ -383,54 +435,93 @@ async function closePendingOrder(input: {
 }
 
 export const orderRepository: OrderRepository = {
-  async getCheckout(userId) {
+  async getCheckout(userId, buyNowVariantId) {
     const [user] = await db
       .select({ membershipLevel: users.membershipLevel })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
+    const addressesPromise = db
+      .select({
+        id: userAddresses.id,
+        userId: userAddresses.userId,
+        recipientName: userAddresses.recipientName,
+        recipientPhone: userAddresses.recipientPhone,
+        province: userAddresses.province,
+        city: userAddresses.city,
+        district: userAddresses.district,
+        detailAddress: userAddresses.detailAddress,
+        label: userAddresses.label,
+        isDefault: userAddresses.isDefault,
+      })
+      .from(userAddresses)
+      .where(eq(userAddresses.userId, userId))
+      .orderBy(desc(userAddresses.isDefault), desc(userAddresses.updatedAt));
+
     const [addresses, items] = await Promise.all([
-      db
-        .select({
-          id: userAddresses.id,
-          userId: userAddresses.userId,
-          recipientName: userAddresses.recipientName,
-          recipientPhone: userAddresses.recipientPhone,
-          province: userAddresses.province,
-          city: userAddresses.city,
-          district: userAddresses.district,
-          detailAddress: userAddresses.detailAddress,
-          label: userAddresses.label,
-          isDefault: userAddresses.isDefault,
-        })
-        .from(userAddresses)
-        .where(eq(userAddresses.userId, userId))
-        .orderBy(desc(userAddresses.isDefault), desc(userAddresses.updatedAt)),
-      db
-        .select({
-          id: cartItems.id,
-          quantity: cartItems.quantity,
-          product: {
-            id: products.id,
-            variantId: productVariants.id,
-            slug: products.slug,
-            name: products.name,
-            variantName: productVariants.name,
-            variantAttributesJson: productVariants.attributesJson,
-            priceCents: productVariants.priceCents,
-            stock: productVariants.stock,
-            coverUrl: products.coverUrl,
-            status: products.status,
-            variantStatus: productVariants.status,
-            categoryStatus: categories.status,
-          },
-        })
-        .from(cartItems)
-        .innerJoin(productVariants, eq(cartItems.variantId, productVariants.id))
-        .innerJoin(products, eq(productVariants.productId, products.id))
-        .innerJoin(categories, eq(products.categoryId, categories.id))
-        .where(eq(cartItems.userId, userId))
-        .orderBy(desc(cartItems.updatedAt)),
+      addressesPromise,
+      buyNowVariantId !== undefined
+        ? db
+            .select({
+              product: {
+                id: products.id,
+                variantId: productVariants.id,
+                slug: products.slug,
+                name: products.name,
+                variantName: productVariants.name,
+                variantAttributesJson: productVariants.attributesJson,
+                priceCents: productVariants.priceCents,
+                stock: productVariants.stock,
+                coverUrl: products.coverUrl,
+                status: products.status,
+                variantStatus: productVariants.status,
+                categoryStatus: categories.status,
+              },
+            })
+            .from(productVariants)
+            .innerJoin(products, eq(productVariants.productId, products.id))
+            .innerJoin(categories, eq(products.categoryId, categories.id))
+            .where(
+              and(
+                eq(productVariants.id, buyNowVariantId),
+                eq(productVariants.status, "ACTIVE"),
+                eq(products.status, "ACTIVE"),
+                eq(categories.status, "ACTIVE"),
+              ),
+            )
+            .limit(1)
+            .then((rows) =>
+              rows.map(({ product }) => ({
+                id: 0,
+                quantity: 1,
+                product,
+              })),
+            )
+        : db
+            .select({
+              id: cartItems.id,
+              quantity: cartItems.quantity,
+              product: {
+                id: products.id,
+                variantId: productVariants.id,
+                slug: products.slug,
+                name: products.name,
+                variantName: productVariants.name,
+                variantAttributesJson: productVariants.attributesJson,
+                priceCents: productVariants.priceCents,
+                stock: productVariants.stock,
+                coverUrl: products.coverUrl,
+                status: products.status,
+                variantStatus: productVariants.status,
+                categoryStatus: categories.status,
+              },
+            })
+            .from(cartItems)
+            .innerJoin(productVariants, eq(cartItems.variantId, productVariants.id))
+            .innerJoin(products, eq(productVariants.productId, products.id))
+            .innerJoin(categories, eq(products.categoryId, categories.id))
+            .where(eq(cartItems.userId, userId))
+            .orderBy(desc(cartItems.updatedAt)),
     ]);
 
     return {
