@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { SiteHeader } from "@/features/site/site-header";
 import { SiteFooter } from "@/features/home/site-footer";
+import { CustomerSupportWidget } from "@/features/support/customer-support-widget";
 
 import "./globals.css";
 
@@ -33,6 +34,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <SiteHeader />
         {children}
+        {/* 全站共用客服入口；具体商品信息由当前商品页上下文提供。 */}
+        <CustomerSupportWidget />
         <SiteFooter />
       </body>
     </html>

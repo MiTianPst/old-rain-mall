@@ -4,27 +4,51 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { parseAdminProductFormData, parseAdminVariants, parsePositiveInteger } from "@/features/admin/product-schema";
+import { parseOptionalProductImage } from "@/features/admin/product-image-input";
 import { getAdminSession } from "@/server/admin/auth";
 import { adminProductService } from "@/server/admin-products";
 import { inventoryService } from "@/server/inventory";
 import { auditService } from "@/server/audit";
+import { productImageRepository } from "@/server/repositories/product-image-repository";
+import { createProductImageService } from "@/server/services/product-image-service";
 
-export type AdminProductActionState = { status: "IDLE" | "SUCCESS" | "ERROR"; message: string; fieldErrors?: Record<string, string[]> };
+export type AdminProductActionState = { status: "IDLE" | "SUCCESS" | "ERROR"; message: string; fieldErrors?: Record<string, string[]>; productId?: number };
 const errorState = (message: string, fieldErrors?: Record<string, string[]>): AdminProductActionState => ({ status: "ERROR", message, fieldErrors });
 function refreshProductPaths() { revalidatePath("/admin/products"); revalidatePath("/"); revalidatePath("/products/[slug]", "page"); }
+const productImageService = createProductImageService(productImageRepository);
 
+// 先校验本地图片，再创建商品并上传首图；上传失败时返回商品编号以便补传，避免重复创建。
 export async function createAdminProductAction(_state: AdminProductActionState, formData: FormData): Promise<AdminProductActionState> {
   const admin = await getAdminSession();
   if (!admin) return errorState("没有后台管理权限");
   const parsed = parseAdminProductFormData(formData);
   if (!parsed.success) return errorState("请检查商品信息", parsed.fieldErrors);
+  const selectedImage = parseOptionalProductImage(formData.get("image"));
+  if (!selectedImage.ok) return errorState(selectedImage.message, { image: [selectedImage.message] });
+  let createdProductId: number | null = null;
   try {
     const result = await adminProductService.create(admin, parsed.data);
     if (!result.ok) return errorState(result.message);
+    createdProductId = result.id;
     await auditService.record(admin, { action: "PRODUCT_CREATE", targetType: "PRODUCT", targetId: String(result.id), summary: `创建商品：${parsed.data.name}` }).catch(() => undefined);
-  } catch (error) { console.error("创建商品失败", { error }); return errorState("创建商品失败，请稍后重试"); }
+    if (selectedImage.file) {
+      const uploaded = await productImageService.upload(admin, { productId: result.id, file: selectedImage.file });
+      if (!uploaded.ok) {
+        refreshProductPaths();
+        return { status: "SUCCESS", message: `商品已创建，但图片未上传：${uploaded.message}。请进入商品编辑页补传。`, productId: result.id };
+      }
+      await auditService.record(admin, { action: "PRODUCT_IMAGE_UPLOAD", targetType: "PRODUCT_IMAGE", targetId: String(uploaded.image.id), summary: "上传商品首图" }).catch(() => undefined);
+    }
+  } catch (error) {
+    console.error("创建商品或上传图片失败", { errorName: error instanceof Error ? error.name : "UnknownError" });
+    if (createdProductId) {
+      refreshProductPaths();
+      return { status: "SUCCESS", message: "商品已创建，但图片上传失败。请进入商品编辑页补传。", productId: createdProductId };
+    }
+    return errorState("创建商品失败，请稍后重试");
+  }
   refreshProductPaths();
-  redirect("/admin/products");
+  redirect(`/admin/products/${createdProductId}/edit`);
 }
 
 export async function updateAdminProductAction(_state: AdminProductActionState, formData: FormData): Promise<AdminProductActionState> {

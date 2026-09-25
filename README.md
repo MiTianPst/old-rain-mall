@@ -47,6 +47,16 @@ npm run dev
 
 打开 [http://localhost:3000](http://localhost:3000) 查看项目。
 
+## AI 智能客服
+
+在 `.env` 中设置 `DEEPSEEK_API_KEY`，按需设置 `DEEPSEEK_MODEL`（默认 `deepseek-flash`），重启开发服务器后即可通过页面右下角的“咨询客服”使用。生产部署时在 `.env.production` 中配置相同变量。密钥只在服务端使用，不要写进 `NEXT_PUBLIC_` 变量或提交到 Git。
+
+客服可参考公开商品、分类、会员与购物规则回答问题；会话仅保存在当前浏览器页面内，刷新或点击“结束会话”即清空。客服不能查看个人订单、账户或支付状态，也不能代用户操作。未配置密钥时，聊天窗口会显示未启用提示。
+
+## 找回密码邮件
+
+本地测试可使用 QQ 邮箱 SMTP。在 QQ 邮箱网页设置中开启 SMTP 并生成授权码，然后在未纳入 Git 的 `.env` 中填写 `QQ_SMTP_USER`（完整 QQ 邮箱地址）和 `QQ_SMTP_AUTH_CODE`（授权码，不是 QQ 登录密码），重启项目。找回密码邮件只发送到已注册用户的邮箱，重置链接有效期为 1 小时；应用日志不会输出重置链接或令牌。生产环境使用 `.env.production` 配置相同变量，发送量增加后建议改用专用事务邮件服务。
+
 ## 微信支付 Native
 
 生产环境复制 `.env.production.example` 为 `.env.production`，填入微信支付商户证书、私钥、API v3 密钥和公网 HTTPS 回调地址，并设置 `PAYMENT_PROVIDER=WECHAT_NATIVE`。支付页会生成 Native 二维码；回调地址为 `/api/payments/wechat/notify`，用户也可以在扫码后主动查询订单状态。

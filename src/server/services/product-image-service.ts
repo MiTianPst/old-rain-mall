@@ -1,11 +1,9 @@
 import { z } from "zod";
 
+import { validateProductImage } from "@/features/admin/product-image-input";
 import type { AdminIdentity } from "@/server/admin/auth";
 import type { ProductImageDto } from "@/server/services/catalog-service";
 import { productImageStorage, type ProductImageStorage } from "@/server/storage/product-image-storage";
-
-export const MAX_PRODUCT_IMAGE_BYTES = 5 * 1024 * 1024;
-const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export type ProductImageRecord = ProductImageDto & { productId: number };
 
@@ -18,13 +16,6 @@ export interface ProductImageRepository {
 }
 
 const inputSchema = z.object({ productId: z.number().int().positive() });
-
-export function validateProductImage(file: File) {
-  if (!file || file.size <= 0) return { ok: false as const, message: "请选择非空图片文件" };
-  if (file.size > MAX_PRODUCT_IMAGE_BYTES) return { ok: false as const, message: "图片大小不能超过 5 MB" };
-  if (!allowedTypes.has(file.type)) return { ok: false as const, message: "仅支持 JPG、PNG 或 WebP 图片" };
-  return { ok: true as const };
-}
 
 export function createProductImageService(
   repository: ProductImageRepository,

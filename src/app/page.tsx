@@ -1,3 +1,4 @@
+// 首页从数据库读取分类、商品与会员状态，并以不同浅色底区分商品展示区域。
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -8,6 +9,7 @@ import { parseCatalogQuery } from "@/features/catalog/query";
 import { CategoryShortcuts } from "@/features/home/category-shortcuts";
 import { CommerceHighlights } from "@/features/home/commerce-highlights";
 import { HomeHero } from "@/features/home/home-hero";
+import { selectHeroProducts } from "@/features/home/hero-products";
 import { MembershipPanel } from "@/features/home/membership-panel";
 import { ProductShowcase } from "@/features/home/product-showcase";
 import { ServicePromises } from "@/features/home/service-promises";
@@ -50,47 +52,58 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       [...new Set([...homepageProducts.map((item) => item.id), ...products.data.map((item) => item.id)])],
     ),
   );
-  const heroProduct =
-    homepageData.featuredProducts[0] ?? homepageData.newProducts[0];
+  // 首屏只消费已查询的推荐与新品数据，不追加独立请求。
+  const heroProducts = selectHeroProducts(
+    homepageData.featuredProducts,
+    homepageData.newProducts,
+  );
 
   return (
     <main className="overflow-hidden">
-      <HomeHero product={heroProduct} />
+      <HomeHero products={heroProducts} />
 
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <ProductShowcase
-          id="featured-products"
-          eyebrow="旧雨推荐"
-          title="本周精选好物"
-          description="由商城后台配置的推荐商品，适合想快速挑到重点好物的你。"
-          products={homepageData.featuredProducts}
-          isAuthenticated={Boolean(session)}
-          favoriteProductIds={favoriteProductIds}
-        />
+      <div className="border-b border-stone-200/70 bg-[#fffdfa]">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <ProductShowcase
+            id="featured-products"
+            eyebrow="旧雨推荐"
+            title="本周精选好物"
+            description="由商城后台配置的推荐商品，适合想快速挑到重点好物的你。"
+            products={homepageData.featuredProducts}
+            isAuthenticated={Boolean(session)}
+            favoriteProductIds={favoriteProductIds}
+          />
+        </div>
       </div>
 
       <CategoryShortcuts categories={categories} />
       <CommerceHighlights />
 
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <ProductShowcase
-          id="new-products"
-          eyebrow="刚刚上新"
-          title="新鲜科技到店"
-          description="按照真实上架时间更新，看看最近加入旧雨的新选择。"
-          products={homepageData.newProducts}
-          isAuthenticated={Boolean(session)}
-          favoriteProductIds={favoriteProductIds}
-        />
-        <ProductShowcase
-          id="best-selling"
-          eyebrow="真实热销"
-          title="大家正在选择"
-          description="根据成功支付且未退款的订单销量排序。"
-          products={homepageData.bestSellingProducts}
-          isAuthenticated={Boolean(session)}
-          favoriteProductIds={favoriteProductIds}
-        />
+      <div className="bg-[#f1eee8]">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <ProductShowcase
+            id="new-products"
+            eyebrow="刚刚上新"
+            title="新鲜科技到店"
+            description="按照真实上架时间更新，看看最近加入旧雨的新选择。"
+            products={homepageData.newProducts}
+            isAuthenticated={Boolean(session)}
+            favoriteProductIds={favoriteProductIds}
+          />
+        </div>
+      </div>
+      <div className="bg-[#faf8f4]">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <ProductShowcase
+            id="best-selling"
+            eyebrow="真实热销"
+            title="大家正在选择"
+            description="根据成功支付且未退款的订单销量排序。"
+            products={homepageData.bestSellingProducts}
+            isAuthenticated={Boolean(session)}
+            favoriteProductIds={favoriteProductIds}
+          />
+        </div>
       </div>
 
       <MembershipPanel

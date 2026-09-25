@@ -1,28 +1,28 @@
+// 首页首屏保留搜索与购物入口，以轻柔的双层渐变衬托右侧真实商品轮播。
 import Link from "next/link";
 
-import { ProductVisual } from "@/features/catalog/product-visual";
-import { formatCny } from "@/lib/money";
+import { HomeHeroCarousel } from "@/features/home/home-hero-carousel";
 import type { HomepageProductDto } from "@/server/services/homepage-service";
 
-export function HomeHero({ product }: { product?: HomepageProductDto }) {
+// 文案区维持服务端渲染，仅轮播交互进入客户端以减小首页脚本范围。
+export function HomeHero({ products }: { products: HomepageProductDto[] }) {
   return (
-    <section className="relative overflow-hidden border-b border-[#e8dfd2] bg-[#f6f0e7]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_16%,rgba(255,255,255,0.95),transparent_34%),radial-gradient(circle_at_85%_22%,rgba(217,184,145,0.28),transparent_32%)]" />
-      <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-6 py-12 lg:grid-cols-[1.02fr_0.98fr] lg:px-8 lg:py-16">
+    <section className="border-b border-[#e7e0d5] bg-[radial-gradient(circle_at_82%_12%,rgba(255,255,255,0.86)_0%,transparent_38%),linear-gradient(115deg,#efe2d2_0%,#f9f5ed_50%,#e9eee9_100%)]">
+      <div className="mx-auto grid max-w-7xl items-center gap-8 px-6 py-9 lg:grid-cols-[1fr_0.9fr] lg:gap-14 lg:px-8 lg:py-11">
         <div>
           <p className="text-sm font-medium tracking-[0.28em] text-[#a75e32]">
             旧雨精选 · 好用的科技
           </p>
-          <h1 className="mt-5 max-w-2xl font-serif text-5xl font-semibold leading-[1.08] tracking-[-0.045em] text-stone-900 sm:text-6xl">
+          <h1 className="mt-4 max-w-2xl font-serif text-4xl font-semibold leading-[1.12] tracking-[-0.045em] text-stone-900 sm:text-5xl lg:text-[3.5rem]">
             科技，让日常
             <br />
             多一点喜欢
           </h1>
-          <p className="mt-6 max-w-xl text-base leading-8 text-stone-600 sm:text-lg">
+          <p className="mt-5 max-w-xl text-base leading-7 text-stone-700">
             从手机、电脑到智能生活设备，挑选真正适合日常使用的科技好物。
           </p>
 
-          <form action="/#catalog" className="mt-8 flex max-w-xl flex-col gap-3 sm:flex-row">
+          <form action="/#catalog" className="mt-7 flex max-w-xl flex-col gap-3 sm:flex-row">
             <label htmlFor="hero-search" className="sr-only">搜索科技好物</label>
             <input
               id="hero-search"
@@ -36,7 +36,7 @@ export function HomeHero({ product }: { product?: HomepageProductDto }) {
             </button>
           </form>
 
-          <div className="mt-5 flex flex-wrap items-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-3">
             <Link href="#catalog" className="flex min-h-11 items-center rounded-full bg-stone-900 px-6 text-sm font-medium text-white transition hover:bg-amber-800">
               立即选购
             </Link>
@@ -44,36 +44,10 @@ export function HomeHero({ product }: { product?: HomepageProductDto }) {
               查看新品
             </Link>
           </div>
-          <div className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-xs text-stone-500">
-            <span>✓ 全场包邮</span>
-            <span>✓ 订单保留 2 小时</span>
-            <span>✓ 心悦会员最高 9 折</span>
-          </div>
         </div>
 
-        <div className="relative">
-          <div className="absolute -inset-4 rounded-[3rem] bg-white/35 blur-2xl" />
-          <div className="relative overflow-hidden rounded-[2.5rem] border border-white/80 bg-white/70 p-4 shadow-[0_35px_90px_-45px_rgba(78,55,30,0.55)] backdrop-blur">
-            {product ? (
-              <>
-                <Link href={`/products/${product.slug}`} className="block overflow-hidden rounded-[2rem]">
-                  <ProductVisual productId={product.id} name={product.name} coverUrl={product.coverUrl} priority large />
-                </Link>
-                <div className="flex flex-wrap items-end justify-between gap-4 px-3 pb-2 pt-5">
-                  <div>
-                    <p className="text-xs tracking-[0.16em] text-[#a75e32]">本周主推</p>
-                    <h2 className="mt-1 text-xl font-semibold text-stone-900">{product.name}</h2>
-                    <p className="mt-1 text-sm text-stone-500">{product.summary}</p>
-                  </div>
-                  <p className="text-xl font-semibold text-[#b85f2f]">{formatCny(product.priceCents)}</p>
-                </div>
-              </>
-            ) : (
-              <div className="flex aspect-square items-center justify-center rounded-[2rem] bg-gradient-to-br from-white to-[#e9ddcd] p-12 text-center">
-                <p className="font-serif text-4xl leading-tight text-stone-800">发现一件<br />真正好用的科技好物</p>
-              </div>
-            )}
-          </div>
+        <div className="flex justify-center lg:justify-end">
+          <HomeHeroCarousel products={products} />
         </div>
       </div>
     </section>

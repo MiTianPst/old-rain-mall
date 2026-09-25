@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { accounts, rateLimits, sessions, users, verifications } from "@/db/schema";
 import { env } from "@/lib/env";
 import { authRateLimitService } from "@/server/auth-rate-limit";
+import { sendPasswordResetMail } from "@/server/email/password-reset-email";
 
 export const auth = betterAuth({
   appName: "旧雨电商",
@@ -28,8 +29,24 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     maxPasswordLength: 128,
     resetPasswordTokenExpiresIn: 3600,
-    sendResetPassword: async ({ user, url, token }) => {
-      if (process.env.NODE_ENV === "development") console.info("本地密码重置链接", { userId: user.id, url, token });
+    sendResetPassword: async ({ user, url }) => {
+      if (!env.QQ_SMTP_USER || !env.QQ_SMTP_AUTH_CODE) {
+        throw new Error("找回密码邮件尚未配置");
+      }
+      try {
+        await sendPasswordResetMail({
+          from: env.QQ_SMTP_USER,
+          authorizationCode: env.QQ_SMTP_AUTH_CODE,
+          to: user.email,
+          resetUrl: url,
+          siteUrl: env.BETTER_AUTH_URL,
+        });
+      } catch (error) {
+        console.error("[auth] 找回密码邮件发送失败", {
+          errorName: error instanceof Error ? error.name : "UnknownError",
+        });
+        throw new Error("找回密码邮件发送失败");
+      }
     },
   },
   rateLimit: {

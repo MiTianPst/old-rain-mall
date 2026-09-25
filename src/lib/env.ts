@@ -29,6 +29,13 @@ const envSchema = z.object({
     z.string().length(32, "WECHAT_API_V3_KEY 必须是 32 个字符").optional(),
   ),
   WECHAT_NOTIFY_URL: optionalUrl,
+  DEEPSEEK_API_KEY: optionalString,
+  DEEPSEEK_MODEL: optionalString,
+  QQ_SMTP_USER: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.email("QQ_SMTP_USER 必须是有效邮箱地址").optional(),
+  ),
+  QQ_SMTP_AUTH_CODE: optionalString,
 });
 
 export const env = envSchema.parse({
@@ -44,4 +51,8 @@ export const env = envSchema.parse({
   WECHAT_PLATFORM_CERTIFICATE: process.env.WECHAT_PLATFORM_CERTIFICATE,
   WECHAT_API_V3_KEY: process.env.WECHAT_API_V3_KEY,
   WECHAT_NOTIFY_URL: process.env.WECHAT_NOTIFY_URL,
+  DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
+  DEEPSEEK_MODEL: process.env.DEEPSEEK_MODEL,
+  QQ_SMTP_USER: process.env.QQ_SMTP_USER,
+  QQ_SMTP_AUTH_CODE: process.env.QQ_SMTP_AUTH_CODE,
 });

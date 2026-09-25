@@ -27,3 +27,22 @@ html {
   background: #ead4b8;
   color: #292524;
 }
+
+/* 主推商品切换时给出轻微状态反馈，减少动态效果偏好下保持静态。 */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-slide-enter {
+    animation: hero-slide-in 360ms ease-out both;
+  }
+}
+
+@keyframes hero-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
